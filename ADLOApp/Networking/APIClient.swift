@@ -14,6 +14,7 @@ final class APIClient {
     var onUnauthorized: () async -> String? = { nil }
 
     private let session: URLSession
+    private var bypassPrimingTask: Task<Void, Never>?
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -33,7 +34,33 @@ final class APIClient {
         _ = try await sendRaw(endpoint)
     }
 
+    /// A protected Vercel preview deployment needs its SSO bypass cookie set once
+    /// per session — after that, `URLSession`'s shared cookie storage carries it
+    /// on every subsequent request automatically. Deliberately NOT appended as a
+    /// `_vercel_share` query param on every request: once the cookie exists,
+    /// Vercel 307-redirects any further request that still carries that param
+    /// (to strip it from the URL), and URLSession drops the `Authorization`
+    /// header when it follows a redirect — silently turning every authenticated
+    /// call into a 401. One clean priming hit avoids that entirely.
+    private func primeVercelBypassIfNeeded() async {
+        guard let bypassToken = APIConfiguration.vercelPreviewBypassToken else { return }
+        if let existing = bypassPrimingTask {
+            await existing.value
+            return
+        }
+        let session = session
+        let task = Task<Void, Never> {
+            guard var components = URLComponents(url: APIConfiguration.baseURL, resolvingAgainstBaseURL: false) else { return }
+            components.queryItems = [URLQueryItem(name: "_vercel_share", value: bypassToken)]
+            guard let url = components.url else { return }
+            _ = try? await session.data(from: url)
+        }
+        bypassPrimingTask = task
+        await task.value
+    }
+
     private func sendRaw(_ endpoint: Endpoint, isRetry: Bool = false) async throws -> Data {
+        await primeVercelBypassIfNeeded()
         let request = try makeRequest(for: endpoint)
 
         let data: Data
@@ -69,11 +96,7 @@ final class APIClient {
             url: APIConfiguration.baseURL.appendingPathComponent(APIConfiguration.apiVersionPath + endpoint.path),
             resolvingAgainstBaseURL: false
         )
-        var queryItems = endpoint.query
-        if let bypassToken = APIConfiguration.vercelPreviewBypassToken {
-            queryItems.append(URLQueryItem(name: "_vercel_share", value: bypassToken))
-        }
-        components?.queryItems = queryItems.isEmpty ? nil : queryItems
+        components?.queryItems = endpoint.query.isEmpty ? nil : endpoint.query
 
         guard let url = components?.url else { throw APIError.invalidResponse }
 

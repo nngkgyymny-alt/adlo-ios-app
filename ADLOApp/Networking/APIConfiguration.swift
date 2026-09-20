@@ -24,12 +24,17 @@ enum APIConfiguration {
     /// (including its API routes, not just the browser homepage) behind Vercel's
     /// own SSO/login wall. This bypass token — generated via
     /// `get_access_to_vercel_url` for the specific preview deployment above —
-    /// lets `APIClient` get past that wall on every request. It's tied to that
-    /// one deployment and **expires roughly 24 hours after being generated**;
-    /// regenerate and paste in a fresh value if requests start failing with a
-    /// Vercel login page instead of JSON. Production builds never need this —
-    /// production has no such gate. `nil` disables the bypass entirely (plain
-    /// requests, e.g. once pointed at a real non-preview backend).
+    /// lets `APIClient` get past that wall by hitting it ONCE to set a bypass
+    /// cookie (see `APIClient.primeVercelBypassIfNeeded`), not by attaching it
+    /// to every request — Vercel 307-redirects any request that still carries
+    /// this param once the cookie already exists, and URLSession drops the
+    /// `Authorization` header across that redirect, breaking every
+    /// authenticated call. It's tied to that one deployment and **expires
+    /// roughly 24 hours after being generated**; regenerate and paste in a
+    /// fresh value if requests start failing with a Vercel login page instead
+    /// of JSON. Production builds never need this — production has no such
+    /// gate. `nil` disables the bypass entirely (plain requests, e.g. once
+    /// pointed at a real non-preview backend).
     static let vercelPreviewBypassToken: String? = {
         #if DEBUG
         return "OdzVLmoptTfrA3ZqDLc6jZJVuLC0Ag2x"
