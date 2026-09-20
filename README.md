@@ -12,6 +12,7 @@ Native SwiftUI client-facing app for American Dream Law Office.
 - **Case Status** *(clients)* — milestone timeline for the client's active case.
 - **Documents** *(clients)* — document checklist with due dates; tap to mark submitted.
 - **Inquiry Status** *(prospects)* — case details from a linked Lawmatics contact (if any) + intake status, with a "Book a Consultation" link.
+- **Check USCIS / EOIR Status** *(both)* — a receipt-number lookup against USCIS's real Case Status API, plus a link out to EOIR's official ACIS site (no public API exists for EOIR). Reached from a link on Case Status (clients) / Inquiry Status (prospects), not its own tab.
 - **Contact** — call, WhatsApp, email, office map, and hours.
 - **More** — language preference (English/Español/العربية), notification toggle, log out, legal links.
 
@@ -23,8 +24,8 @@ Native SwiftUI client-facing app for American Dream Law Office.
 - **`.client`** — retained, has (or will have) a Lawmatics matter.
   Staff-provisioned only. Sees `RootTabView` (Home/Case Status/Documents/Contact/More).
 - **`.prospect`** — self-signed-up lead. Sees `ProspectTabView`
-  (Inquiry Status/Contact/More) — no case exists yet, just their fee
-  estimate and a staff-editable status string.
+  (Inquiry Status/Contact/More) — no case exists yet, just a linked
+  Lawmatics contact (if any) and a staff-editable status string.
 
 Case/document/inquiry data and auth now go through a real networking layer
 (`ADLOApp/Networking/`, `ADLOApp/Auth/`) — and, as of the
@@ -61,11 +62,13 @@ ADLOApp/
   App/            App entry point, Theme, AppState
   Auth/           AuthSession, Keychain-backed token storage, auth models
   Networking/     APIClient, Endpoint definitions, APIConfiguration, APIError
-  Services/       CaseService (clients), ProspectService (prospects)
-  Models/         CaseFile, DocumentItem, InquiryStatus, FirmContact
+  Services/       CaseService (clients), ProspectService (prospects),
+                  CaseStatusLookupService (USCIS, both account types)
+  Models/         CaseFile, DocumentItem, InquiryStatus, USCISCaseStatus, FirmContact
   Views/          Auth (incl. SignUp), Home, CaseStatus, Documents, Prospect,
-                  Contact, Settings, shared Components; RootContentView
-                  branches to RootTabView (client) or ProspectTabView (prospect)
+                  CaseStatusLookup, Contact, Settings, shared Components;
+                  RootContentView branches to RootTabView (client) or
+                  ProspectTabView (prospect)
   Resources/      Info.plist, Assets.xcassets
 ADLOAppTests/     Unit tests
 docs/             API contract for the backend

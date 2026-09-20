@@ -100,6 +100,13 @@ struct ProspectStatusView: View {
                         .tint(Theme.gold)
                     }
                 }
+
+                SectionCard(title: "Check a Case Status") {
+                    NavigationLink("Check USCIS / EOIR Status") {
+                        CaseStatusLookupView()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                }
             }
             .padding()
         }

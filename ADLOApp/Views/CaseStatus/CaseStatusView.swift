@@ -42,6 +42,12 @@ struct CaseStatusView: View {
                                 .padding(.vertical, 4)
                             }
                         }
+
+                        Section {
+                            NavigationLink("Check USCIS / EOIR Status") {
+                                CaseStatusLookupView()
+                            }
+                        }
                     }
                 }
             }

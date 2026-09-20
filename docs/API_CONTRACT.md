@@ -141,6 +141,43 @@ existed for fee-estimator leads specifically, and this endpoint no longer
 sources from that. `status` is a staff-editable free-text string (e.g.
 "New Inquiry", "Consultation Requested") — there's no automatic progression.
 
+## Government case status lookup (any account type)
+
+### `GET /v1/uscis-status?receipt_number=IOE1234567890`
+Bearer token required — but available to **any** signed-in account, client
+or prospect. A USCIS receipt number isn't tied to whether its holder has
+retained ADLO.
+```json
+{
+  "receipt_number": "IOE1234567890",
+  "form_type": "I-130",
+  "submitted_date": "2026-01-15",
+  "modified_date": "2026-06-01",
+  "status": "Case Was Approved",
+  "description": "We approved your Form I-130.",
+  "history": [
+    { "status": "Case Was Received", "date": "2026-01-15", "description": "We received your form." },
+    { "status": "Case Was Approved", "date": "2026-06-01", "description": "We approved your Form I-130." }
+  ]
+}
+```
+`400` for a malformed receipt number (checked before ever calling USCIS —
+must be a 3-letter prefix + 10 digits, e.g. `EAC/LIN/SRC/IOE/MSC/NBC/WAC/YSC`),
+`404` if USCIS has no record of it, `502` for anything else (USCIS down,
+rate-limited, or an unexpected response shape). **The exact field names
+above are sourced from a third-party OpenAPI mirror, not confirmed against
+USCIS directly** — see the "unverified" note in `adlo-case-estimator`'s
+`docs/PORTAL_BACKEND.md`.
+
+There is deliberately no equivalent endpoint for EOIR (immigration court)
+status — EOIR has no public API, only the lookup website at
+acis.eoir.justice.gov (A-Number, no login). The app links out to it
+directly (`FirmContact.eoirStatusURL`) instead of attempting to scrape it.
+Both the USCIS lookup form and the EOIR link live in one shared
+`CaseStatusLookupView`, reached via a "Check USCIS / EOIR Status" link from
+both `CaseStatusView` (clients) and `ProspectStatusView` (prospects) — not
+its own tab, to keep the tab bar at 5 items.
+
 ## Backend implementation notes
 
 This contract is now implemented — see `docs/PORTAL_BACKEND.md` in

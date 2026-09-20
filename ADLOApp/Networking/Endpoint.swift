@@ -59,6 +59,10 @@ struct Endpoint {
     static func inquiry() -> Endpoint {
         Endpoint(path: "/inquiry", method: .get)
     }
+
+    static func uscisStatus(receiptNumber: String) -> Endpoint {
+        Endpoint(path: "/uscis-status", method: .get, query: [URLQueryItem(name: "receipt_number", value: receiptNumber)])
+    }
 }
 
 extension JSONEncoder {
