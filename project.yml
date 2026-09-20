@@ -1,0 +1,66 @@
+name: ADLOApp
+options:
+  bundleIdPrefix: com.americandreamlawoffice
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_MACCATALYST: false
+
+targets:
+  ADLOApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: ADLOApp
+    resources:
+      - path: ADLOApp/Resources
+    info:
+      path: ADLOApp/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: ADLO
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.americandreamlawoffice.adlo
+        PRODUCT_NAME: ADLO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: false
+    dependencies: []
+
+  ADLOAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ADLOAppTests
+    dependencies:
+      - target: ADLOApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+
+schemes:
+  ADLOApp:
+    build:
+      targets:
+        ADLOApp: all
+        ADLOAppTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ADLOAppTests
+    archive:
+      config: Release
