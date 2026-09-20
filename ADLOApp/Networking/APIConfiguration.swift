@@ -44,7 +44,7 @@ enum APIConfiguration {
     /// you intend to replace the value below with the new one right away.
     static let vercelPreviewBypassToken: String? = {
         #if DEBUG
-        return "JYFCdrVlUexLznmPbmGsQFulALMH18ma"
+        return "MGvUkcEd6KHR3bKXWVy3XQORnMMlnUJK"
         #else
         return nil
         #endif
