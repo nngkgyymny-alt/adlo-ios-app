@@ -42,4 +42,17 @@ enum APIConfiguration {
         return nil
         #endif
     }()
+
+    /// A cleaner long-term fix than `vercelPreviewBypassToken`: Vercel projects
+    /// support a static "Automation Bypass Secret" (Project Settings →
+    /// Deployment Protection) sent as a plain `x-vercel-protection-bypass`
+    /// header on every request — no cookies, no redirect, no 24-hour
+    /// expiration, and none of the Authorization-header-stripping fragility
+    /// that motivated `APIClient.primeVercelBypassIfNeeded`. Generating one
+    /// requires an account permission this session's Vercel connection
+    /// doesn't have (403 on `update_project_protection_bypass`). Whoever does
+    /// have that permission: generate it, then swap this whole file's bypass
+    /// mechanism for a single `request.setValue(secret, forHTTPHeaderField:
+    /// "x-vercel-protection-bypass")` in `APIClient.makeRequest` and delete
+    /// `vercelPreviewBypassToken`/`primeVercelBypassIfNeeded` entirely.
 }
