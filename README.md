@@ -6,7 +6,10 @@ Native SwiftUI client-facing app for American Dream Law Office.
 
 - **Welcome screen** — the first thing a signed-out user sees: two tracks,
   "Current Client" and "New / Potential Client" (`WelcomeView`), rather than
-  one shared login form with a small signup link buried in it.
+  one shared login form with a small signup link buried in it. An "Email Us"
+  button lets a visitor who isn't ready to log in or sign up email the firm
+  directly — it asks current-vs-potential first so the message lands in the
+  right inbox (`clients@` vs. `intake@`, same routing `ContactView` uses).
 - **Login** — email + password, forgot-password flow, session persisted via Keychain.
 - **New Client** — leads with "Schedule a Consultation" (opens the firm's
   consultation booking page) since that's the primary action for someone
@@ -17,7 +20,12 @@ Native SwiftUI client-facing app for American Dream Law Office.
   are staff-provisioned. See "Two account types" below.
 - **Home** *(clients)* — welcome screen, case snapshot, outstanding-document alert, quick contact links.
 - **Case Status** *(clients)* — milestone timeline for the client's active case.
-- **Documents** *(clients)* — document checklist with due dates; tap to mark submitted.
+- **Documents** *(clients)* — document checklist with due dates; tap to mark
+  submitted, or upload a photo/PDF of the actual document (uploading a file
+  is the submission). An already-uploaded file can be viewed in place via
+  QuickLook. Files are stored in a private Vercel Blob store and only ever
+  served back through an authenticated backend route — see
+  `adlo-case-estimator`'s `docs/PORTAL_BACKEND.md`.
 - **Inquiry Status** *(prospects)* — leads with "Schedule a Consultation", then case details from a linked Lawmatics contact (if any) + intake status.
 - **Check USCIS / EOIR Status** *(both)* — a receipt-number lookup against USCIS's real Case Status API, plus a link out to EOIR's official ACIS site (no public API exists for EOIR). Reached from a link on Case Status (clients) / Inquiry Status (prospects), not its own tab.
 - **Contact** — call, WhatsApp, email, office map, hours, and social links.

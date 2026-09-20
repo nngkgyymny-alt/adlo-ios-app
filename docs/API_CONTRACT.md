@@ -108,10 +108,15 @@ shows the first one — see `CaseService.fetchPrimaryCase`).
     "title": "Valid Passport (all pages)",
     "detail": "Clear copy of every page, including blank ones.",
     "is_submitted": true,
-    "due_date": null
+    "due_date": null,
+    "has_file": true,
+    "file_url": "/api/portal/cases/case_123/documents/doc_1/file"
   }
 ]
 ```
+`file_url` is only ever this backend's own authenticated proxy path (never a
+raw storage URL) — see the upload/file endpoints below. It's `null` when
+`has_file` is `false`.
 
 ### `POST /api/portal/cases/{caseId}/documents/{documentId}/submit`
 Marks a document as submitted (client confirms they've sent it in some other
@@ -120,6 +125,30 @@ channel — email, portal upload, in person). Empty body/response.
 > The app does not yet support un-marking a document as submitted via the
 > API — `AppState.toggleSubmitted` only calls this endpoint on the
 > not-submitted → submitted transition.
+
+### `POST /api/portal/cases/{caseId}/documents/{documentId}/upload`
+Client accounts only (404 for a prospect). `multipart/form-data` with a
+single `file` field — a JPEG, PNG, HEIC/HEIF, or PDF, up to 4 MB. Uploading a
+file **is** the submission: it also marks the item submitted, same as
+calling `.../submit` separately. Returns the updated document (same shape
+as the list above). `413` if the file's too large, `400` for an unsupported
+type or a missing/empty file.
+
+`DocumentsView` builds the multipart body itself (`Endpoint.uploadDocument`)
+and picks a file via `.fileImporter`; `AppState.uploadDocument` calls this
+endpoint and replaces the matching entry in `AppState.documents` with the
+response.
+
+### `GET /api/portal/cases/{caseId}/documents/{documentId}/file`
+Streams the uploaded file's raw bytes back (with the original
+`Content-Type`) rather than redirecting to a storage URL — the backing
+store is private specifically so there is no public URL for it. `404` if
+nothing's been uploaded for that document yet, or if the document/case
+doesn't belong to the caller.
+
+`AppState.fetchDocumentFile` calls this and hands the bytes to
+`DocumentsView`, which writes them to a temp file and previews it with
+QuickLook.
 
 ## Inquiry status (`account_type: "prospect"`)
 
