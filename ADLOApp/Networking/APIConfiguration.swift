@@ -42,9 +42,14 @@ enum APIConfiguration {
     /// into this directly: repeated calls made for unrelated debugging
     /// silently broke this exact value mid-session. Only regenerate this when
     /// you intend to replace the value below with the new one right away.
+    ///
+    /// **Second trap:** redeploying the underlying preview deployment
+    /// (e.g. to pick up a new env var) also invalidates the current token,
+    /// even though the alias URL above doesn't change — regenerate again
+    /// after any redeploy.
     static let vercelPreviewBypassToken: String? = {
         #if DEBUG
-        return "MGvUkcEd6KHR3bKXWVy3XQORnMMlnUJK"
+        return "nFOOWuo6Iugdu1nEOfS8CmQkblmZE3Z9"
         #else
         return nil
         #endif
