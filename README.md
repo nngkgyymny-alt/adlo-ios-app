@@ -4,14 +4,21 @@ Native SwiftUI client-facing app for American Dream Law Office.
 
 ## Features (MVP)
 
+- **Welcome screen** — the first thing a signed-out user sees: two tracks,
+  "Current Client" and "New / Potential Client" (`WelcomeView`), rather than
+  one shared login form with a small signup link buried in it.
 - **Login** — email + password, forgot-password flow, session persisted via Keychain.
-- **Sign Up** — self-service, for potential clients/leads only (`AccountType.prospect`).
-  Retained clients don't sign up — their accounts are staff-provisioned; see
-  "Two account types" below.
+- **New Client** — leads with "Schedule a Consultation" (opens the firm's
+  consultation booking page) since that's the primary action for someone
+  without an existing relationship with the firm; "Create a Free Account" and
+  "Log In" are secondary options for tracking an inquiry already in progress
+  (`NewClientView`). Self-service signup is for potential clients/leads only
+  (`AccountType.prospect`) — retained clients don't sign up; their accounts
+  are staff-provisioned. See "Two account types" below.
 - **Home** *(clients)* — welcome screen, case snapshot, outstanding-document alert, quick contact links.
 - **Case Status** *(clients)* — milestone timeline for the client's active case.
 - **Documents** *(clients)* — document checklist with due dates; tap to mark submitted.
-- **Inquiry Status** *(prospects)* — case details from a linked Lawmatics contact (if any) + intake status, with a "Book a Consultation" link.
+- **Inquiry Status** *(prospects)* — leads with "Schedule a Consultation", then case details from a linked Lawmatics contact (if any) + intake status.
 - **Check USCIS / EOIR Status** *(both)* — a receipt-number lookup against USCIS's real Case Status API, plus a link out to EOIR's official ACIS site (no public API exists for EOIR). Reached from a link on Case Status (clients) / Inquiry Status (prospects), not its own tab.
 - **Contact** — call, WhatsApp, email, office map, and hours.
 - **More** — language preference (English/Español/العربية), notification toggle, log out, legal links.
@@ -19,7 +26,8 @@ Native SwiftUI client-facing app for American Dream Law Office.
 ## Two account types
 
 `ClientUser.accountType` drives which tabs the app shows after sign-in
-(`RootContentView`) — one login screen either way:
+(`RootContentView`) — reached via either track on `WelcomeView`, since
+`/auth/login` doesn't care which button got you there:
 
 - **`.client`** — retained, has (or will have) a Lawmatics matter.
   Staff-provisioned only. Sees `RootTabView` (Home/Case Status/Documents/Contact/More).
@@ -65,9 +73,10 @@ ADLOApp/
   Services/       CaseService (clients), ProspectService (prospects),
                   CaseStatusLookupService (USCIS, both account types)
   Models/         CaseFile, DocumentItem, InquiryStatus, USCISCaseStatus, FirmContact
-  Views/          Auth (incl. SignUp), Home, CaseStatus, Documents, Prospect,
-                  CaseStatusLookup, Contact, Settings, shared Components;
-                  RootContentView branches to RootTabView (client) or
+  Views/          Auth (Welcome, Login, SignUp, NewClient), Home, CaseStatus,
+                  Documents, Prospect, CaseStatusLookup, Contact, Settings,
+                  shared Components; RootContentView shows WelcomeView when
+                  signed out, else branches to RootTabView (client) or
                   ProspectTabView (prospect)
   Resources/      Info.plist, Assets.xcassets
 ADLOAppTests/     Unit tests
@@ -90,8 +99,10 @@ docs/             API contract for the backend
 ## Notes
 
 - Bundle identifier: `com.americandreamlawoffice.adlo` — update in `project.yml` if different.
-- Colors in `Theme.swift` and `AccentColor` are placeholders — replace with ADLO's
-  official brand palette and app icon before release.
+- Colors in `Theme.swift` and `AccentColor` match the live site's brand
+  palette (`adlo-case-estimator/src/app/globals.css` is the source of truth —
+  navy `#1C2B46`, red `#EE2110`, teal `#00436E`; there is no "gold" in the
+  real brand). The app icon itself is still a placeholder.
 - Contact details in `FirmContact.swift` are placeholders — update with the real
   phone number, email, and address.
 - `APIConfiguration.baseURL` is a placeholder — update once the real backend is deployed.

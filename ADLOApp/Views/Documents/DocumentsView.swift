@@ -25,7 +25,7 @@ struct DocumentsView: View {
                                     if !document.isSubmitted, let dueDate = document.dueDate {
                                         Text("Due \(dueDate.formatted(date: .abbreviated, time: .omitted))")
                                             .font(.caption2.weight(.semibold))
-                                            .foregroundStyle(Theme.gold)
+                                            .foregroundStyle(Theme.warning)
                                     }
                                 }
                                 Spacer()

@@ -27,7 +27,7 @@ struct HomeView: View {
                             SectionCard(title: "Outstanding Documents") {
                                 HStack {
                                     Image(systemName: appState.outstandingDocumentsCount == 0 ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                                        .foregroundStyle(appState.outstandingDocumentsCount == 0 ? .green : Theme.gold)
+                                        .foregroundStyle(appState.outstandingDocumentsCount == 0 ? .green : Theme.warning)
                                     Text(appState.outstandingDocumentsCount == 0
                                          ? "All documents submitted"
                                          : "\(appState.outstandingDocumentsCount) item(s) still needed")
