@@ -1,17 +1,60 @@
 import Foundation
-import Combine
 
+@MainActor
 final class AppState: ObservableObject {
-    @Published var clientFirstName: String = "Client"
-    @Published var caseFile: CaseFile = .sample
-    @Published var documents: [DocumentItem] = DocumentItem.sampleChecklist
+    enum LoadState: Equatable {
+        case idle
+        case loading
+        case loaded
+        case failed(String)
+    }
+
+    @Published var clientFirstName: String = ""
+    @Published var caseFile: CaseFile?
+    @Published var documents: [DocumentItem] = []
+    @Published private(set) var loadState: LoadState = .idle
+
+    private let caseService: CaseDataProviding
+
+    init(caseService: CaseDataProviding = CaseService()) {
+        self.caseService = caseService
+    }
 
     var outstandingDocumentsCount: Int {
         documents.filter { !$0.isSubmitted }.count
     }
 
-    func toggleSubmitted(for documentID: UUID) {
-        guard let index = documents.firstIndex(where: { $0.id == documentID }) else { return }
+    func configure(for user: ClientUser) {
+        clientFirstName = user.firstName
+    }
+
+    func loadCaseData() async {
+        loadState = .loading
+        do {
+            guard let activeCase = try await caseService.fetchPrimaryCase() else {
+                loadState = .failed("No case is linked to your account yet. Please contact our office.")
+                return
+            }
+            caseFile = activeCase
+            documents = try await caseService.fetchDocuments(caseID: activeCase.id)
+            loadState = .loaded
+        } catch {
+            loadState = .failed(error.localizedDescription)
+        }
+    }
+
+    func toggleSubmitted(for documentID: String) async {
+        guard let caseFile, let index = documents.firstIndex(where: { $0.id == documentID }) else { return }
+        let previousValue = documents[index].isSubmitted
         documents[index].isSubmitted.toggle()
+
+        // Only the client-submitted -> submitted transition round-trips to the
+        // server today; un-marking is local-only until the backend supports it.
+        guard !previousValue else { return }
+        do {
+            try await caseService.markSubmitted(caseID: caseFile.id, documentID: documentID)
+        } catch {
+            documents[index].isSubmitted = previousValue
+        }
     }
 }

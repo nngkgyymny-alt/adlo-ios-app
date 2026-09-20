@@ -24,4 +24,5 @@ struct RootTabView: View {
 #Preview {
     RootTabView()
         .environmentObject(AppState())
+        .environmentObject(AuthSession())
 }
