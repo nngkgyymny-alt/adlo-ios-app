@@ -34,4 +34,25 @@ enum FirmContact {
     /// Matches the `openingHours` in `adlo-case-estimator`'s LegalService
     /// structured data (`Mo-Fr 09:00-17:00`).
     static let officeHours = "Mon–Fri, 9:00 AM – 5:00 PM ET"
+
+    struct SocialLink: Identifiable {
+        let name: String
+        let url: String
+        /// No official SF Symbol exists for any of these brands' logos —
+        /// this is a generic external-link glyph, not a stand-in for the
+        /// real brand mark.
+        let systemImage = "arrow.up.forward.app"
+        var id: String { name }
+    }
+
+    /// Matches `SOCIAL_LINKS` in `adlo-diy/tools/site-backup/build_sales_site.py`
+    /// (the sales site's own "Follow Us" footer) — same accounts, same order.
+    static let socialLinks: [SocialLink] = [
+        SocialLink(name: "YouTube", url: "https://www.youtube.com/channel/UCSe2eLA-Bgf50upNxthD2fg"),
+        SocialLink(name: "Instagram", url: "https://www.instagram.com/americandreamlawoffice/"),
+        SocialLink(name: "Facebook", url: "https://www.facebook.com/1413258232335199"),
+        SocialLink(name: "TikTok", url: "https://www.tiktok.com/@adloimmigration"),
+        SocialLink(name: "Threads", url: "https://www.threads.net/@americandreamlawoffice"),
+        SocialLink(name: "LinkedIn", url: "https://www.linkedin.com/company/10245091/"),
+    ]
 }

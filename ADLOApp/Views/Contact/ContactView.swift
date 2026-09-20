@@ -48,6 +48,14 @@ struct ContactView: View {
                     Text(FirmContact.officeHours)
                         .foregroundStyle(.secondary)
                 }
+
+                Section("Follow Us") {
+                    ForEach(FirmContact.socialLinks) { social in
+                        Link(destination: URL(string: social.url)!) {
+                            Label(social.name, systemImage: social.systemImage)
+                        }
+                    }
+                }
             }
             .navigationTitle("Contact Us")
         }
