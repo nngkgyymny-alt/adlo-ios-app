@@ -9,6 +9,13 @@ struct DocumentItem: Identifiable, Decodable {
     var hasFile: Bool
     var fileUrl: String?
 
+    // Swift only auto-generates CodingKeys when it's also synthesizing
+    // init(from:)/encode(to:) itself — since init(from:) below is
+    // hand-written, this has to be spelled out explicitly.
+    private enum CodingKeys: String, CodingKey {
+        case id, title, detail, isSubmitted, dueDate, hasFile, fileUrl
+    }
+
     init(id: String, title: String, detail: String, isSubmitted: Bool, dueDate: Date?, hasFile: Bool = false, fileUrl: String? = nil) {
         self.id = id
         self.title = title
