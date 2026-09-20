@@ -2,8 +2,12 @@ import SwiftUI
 import MapKit
 
 struct ContactView: View {
+    @EnvironmentObject private var appState: AppState
+
+    // Matches adlo-case-estimator's LegalService structured data (the real
+    // office address's verified coordinates), not the old placeholder address.
     @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 27.9506, longitude: -82.4572),
+        center: CLLocationCoordinate2D(latitude: 28.0395, longitude: -82.3834),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
     )
 
@@ -21,6 +25,10 @@ struct ContactView: View {
                         Label("Book a Consultation", systemImage: "calendar.badge.plus")
                             .font(.subheadline.weight(.semibold))
                     }
+                    Link(destination: URL(string: FirmContact.teamURL)!) {
+                        Label("Meet the Staff", systemImage: "person.2.fill")
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
 
                 Section("Get in touch") {
@@ -30,8 +38,9 @@ struct ContactView: View {
                     Link(destination: URL(string: "https://wa.me/\(FirmContact.whatsappNumber)")!) {
                         Label("WhatsApp", systemImage: "message.fill")
                     }
-                    Link(destination: URL(string: "mailto:\(FirmContact.email)")!) {
-                        Label(FirmContact.email, systemImage: "envelope.fill")
+                    let email = FirmContact.contactEmail(for: appState.accountType)
+                    Link(destination: URL(string: "mailto:\(email)")!) {
+                        Label(email, systemImage: "envelope.fill")
                     }
                     Link(destination: URL(string: FirmContact.website)!) {
                         Label("americandreamlawoffice.com", systemImage: "safari.fill")
@@ -43,6 +52,14 @@ struct ContactView: View {
                     Text(FirmContact.officeHours)
                         .foregroundStyle(.secondary)
                 }
+
+                Section("Follow Us") {
+                    ForEach(FirmContact.socialLinks) { social in
+                        Link(destination: URL(string: social.url)!) {
+                            Label(social.name, systemImage: social.systemImage)
+                        }
+                    }
+                }
             }
             .navigationTitle("Contact Us")
         }
@@ -51,4 +68,5 @@ struct ContactView: View {
 
 #Preview {
     ContactView()
+        .environmentObject(AppState())
 }

@@ -10,6 +10,9 @@ final class AppState: ObservableObject {
     }
 
     @Published var clientFirstName: String = ""
+    /// Drives which contact email `ContactView` shows — `FirmContact` has a
+    /// different address per track (new/potential vs. existing clients).
+    @Published var accountType: AccountType = .prospect
     @Published var caseFile: CaseFile?
     @Published var documents: [DocumentItem] = []
     @Published private(set) var loadState: LoadState = .idle
@@ -26,6 +29,7 @@ final class AppState: ObservableObject {
 
     func configure(for user: ClientUser) {
         clientFirstName = user.firstName
+        accountType = user.accountType
     }
 
     func loadCaseData() async {
@@ -57,4 +61,33 @@ final class AppState: ObservableObject {
             documents[index].isSubmitted = previousValue
         }
     }
+
+    /// Uploading a file IS the submission — mirrors the backend's
+    /// `attachDocumentFile`, which also marks the item submitted.
+    func uploadDocument(documentID: String, data: Data, fileName: String, mimeType: String) async throws {
+        guard let caseFile else {
+            throw AppStateError(errorDescription: "No case is linked to your account yet.")
+        }
+        let updated = try await caseService.uploadDocument(
+            caseID: caseFile.id,
+            documentID: documentID,
+            fileData: data,
+            fileName: fileName,
+            mimeType: mimeType
+        )
+        if let index = documents.firstIndex(where: { $0.id == documentID }) {
+            documents[index] = updated
+        }
+    }
+
+    func fetchDocumentFile(documentID: String) async throws -> Data {
+        guard let caseFile else {
+            throw AppStateError(errorDescription: "No case is linked to your account yet.")
+        }
+        return try await caseService.fetchDocumentFile(caseID: caseFile.id, documentID: documentID)
+    }
+}
+
+private struct AppStateError: LocalizedError {
+    let errorDescription: String?
 }

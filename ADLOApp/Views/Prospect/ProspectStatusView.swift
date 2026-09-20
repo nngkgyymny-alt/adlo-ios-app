@@ -56,6 +56,25 @@ struct ProspectStatusView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+                SectionCard(title: "Schedule Your Consultation") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Talk to an attorney about your case and next steps.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button {
+                            if let url = URL(string: FirmContact.consultationURL) {
+                                openURL(url)
+                            }
+                        } label: {
+                            Text("Schedule a Consultation")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.accent)
+                    }
+                }
+
                 SectionCard(title: "Inquiry Status") {
                     Text(inquiry.status)
                         .font(.subheadline.weight(.semibold))
@@ -76,28 +95,9 @@ struct ProspectStatusView: View {
                     }
                 } else {
                     SectionCard(title: "We Haven't Heard From You Yet") {
-                        Text("Book a consultation below and we'll get your case details on file.")
+                        Text("Schedule a consultation above and we'll get your case details on file.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                    }
-                }
-
-                SectionCard(title: "Ready to Talk to an Attorney?") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Book a consultation to discuss your case and next steps.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button {
-                            if let url = URL(string: FirmContact.consultationURL) {
-                                openURL(url)
-                            }
-                        } label: {
-                            Text("Book a Consultation")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.gold)
                     }
                 }
 

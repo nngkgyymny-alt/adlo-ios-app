@@ -10,7 +10,7 @@ struct RootContentView: View {
             case .checking:
                 ProgressView()
             case .signedOut:
-                LoginView()
+                WelcomeView()
             case .signedIn(let user):
                 switch user.accountType {
                 case .client:

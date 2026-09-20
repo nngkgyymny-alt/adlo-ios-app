@@ -58,6 +58,12 @@ final class APIClient {
         _ = try await sendRaw(endpoint)
     }
 
+    /// For endpoints whose response is raw bytes rather than JSON (e.g. a
+    /// downloaded document's file contents).
+    func sendData(_ endpoint: Endpoint) async throws -> Data {
+        try await sendRaw(endpoint)
+    }
+
     /// A protected Vercel preview deployment needs its SSO bypass cookie set
     /// once per session, then attached explicitly to every request (see
     /// `manualBypassCookie`). Deliberately NOT appended as a `_vercel_share`
@@ -165,7 +171,7 @@ final class APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = endpoint.method.rawValue
         request.httpBody = endpoint.body
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(endpoint.contentType, forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if endpoint.requiresAuth, let token = accessTokenProvider() {

@@ -5,7 +5,6 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isShowingForgotPassword = false
-    @State private var isShowingSignUp = false
     @FocusState private var focusedField: Field?
 
     private enum Field {
@@ -21,9 +20,10 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(spacing: 6) {
-                        Image(systemName: "shield.lefthalf.filled")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Theme.navy)
+                        Image("FirmLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 64, height: 64)
                         Text(FirmContact.firmName)
                             .font(.title3.weight(.bold))
                         Text("Client Portal")
@@ -76,35 +76,16 @@ struct LoginView: View {
                     }
                     .font(.footnote)
 
-                    Divider()
-                        .padding(.vertical, 4)
-
-                    VStack(spacing: 10) {
-                        Text("Just getting a fee estimate or exploring your options?")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-
-                        Button("Create a Free Account") {
-                            isShowingSignUp = true
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(Theme.navy)
-
-                        Text("Already a client but don't have portal access? Contact our office.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.top, 4)
-                    }
+                    Text("Don't have portal access yet? Contact our office.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
                 }
                 .padding(.horizontal, 24)
             }
             .sheet(isPresented: $isShowingForgotPassword) {
                 ForgotPasswordView()
-            }
-            .sheet(isPresented: $isShowingSignUp) {
-                SignUpView()
             }
         }
     }

@@ -13,6 +13,7 @@ struct Endpoint {
     let method: Method
     var query: [URLQueryItem] = []
     var body: Data? = nil
+    var contentType: String = "application/json"
     /// Most endpoints require the bearer token; auth endpoints (login, refresh) don't.
     var requiresAuth: Bool = true
 
@@ -54,6 +55,29 @@ struct Endpoint {
 
     static func markDocumentSubmitted(caseID: String, documentID: String) -> Endpoint {
         Endpoint(path: "/cases/\(caseID)/documents/\(documentID)/submit", method: .post)
+    }
+
+    static func documentFile(caseID: String, documentID: String) -> Endpoint {
+        Endpoint(path: "/cases/\(caseID)/documents/\(documentID)/file", method: .get)
+    }
+
+    /// Multipart/form-data upload, matching the backend's single `file` field
+    /// (see docs/PORTAL_BACKEND.md's "Document uploads" section).
+    static func uploadDocument(caseID: String, documentID: String, fileData: Data, fileName: String, mimeType: String) -> Endpoint {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+
+        return Endpoint(
+            path: "/cases/\(caseID)/documents/\(documentID)/upload",
+            method: .post,
+            body: body,
+            contentType: "multipart/form-data; boundary=\(boundary)"
+        )
     }
 
     static func inquiry() -> Endpoint {
