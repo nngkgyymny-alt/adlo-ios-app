@@ -103,6 +103,11 @@ docs/             API contract for the backend
   palette (`adlo-case-estimator/src/app/globals.css` is the source of truth —
   navy `#1C2B46`, red `#EE2110`, teal `#00436E`; there is no "gold" in the
   real brand). The app icon itself is still a placeholder.
-- Contact details in `FirmContact.swift` are placeholders — update with the real
-  phone number, email, and address.
+- Contact details in `FirmContact.swift` are real, verified against
+  `adlo-diy`'s vCards and `adlo-case-estimator`'s structured data — not
+  placeholders. Phone number reuses the sales site's EN tracking number
+  (`PHONE_I18N["en"]` in `adlo-diy/tools/site-backup/build_sales_site.py`)
+  rather than a separate number provisioned just for the app. There is
+  deliberately no public email (`contactFormURL` instead) — the sales site
+  has never displayed one, to avoid leaking the internal `intake@` address.
 - `APIConfiguration.baseURL` is a placeholder — update once the real backend is deployed.
