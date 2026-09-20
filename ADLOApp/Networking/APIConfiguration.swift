@@ -35,9 +35,16 @@ enum APIConfiguration {
     /// of JSON. Production builds never need this — production has no such
     /// gate. `nil` disables the bypass entirely (plain requests, e.g. once
     /// pointed at a real non-preview backend).
+    ///
+    /// **Trap:** calling `get_access_to_vercel_url` again for this same
+    /// deployment ROTATES the token — the previous value (including whatever
+    /// is hardcoded below) stops working immediately, with no warning. Ran
+    /// into this directly: repeated calls made for unrelated debugging
+    /// silently broke this exact value mid-session. Only regenerate this when
+    /// you intend to replace the value below with the new one right away.
     static let vercelPreviewBypassToken: String? = {
         #if DEBUG
-        return "OdzVLmoptTfrA3ZqDLc6jZJVuLC0Ag2x"
+        return "JYFCdrVlUexLznmPbmGsQFulALMH18ma"
         #else
         return nil
         #endif

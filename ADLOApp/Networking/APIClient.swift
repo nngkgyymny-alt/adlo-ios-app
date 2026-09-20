@@ -15,23 +15,33 @@ final class APIClient {
 
     private let session: URLSession
     private var bypassPrimingTask: Task<Void, Never>?
+    /// The raw `_vercel_jwt=...` cookie pair captured from the priming
+    /// response, attached explicitly to every request's `Cookie` header. NOT
+    /// left to `URLSession`'s automatic cookie jar — verified via a live curl
+    /// reproduction that the cookie itself works perfectly when attached
+    /// explicitly, but `URLSession`'s ambient cookie storage was not reliably
+    /// picking it up from the priming hit's 307 response (untested exactly
+    /// why — possibly how it interacts with automatic redirect-following).
+    /// Managing it ourselves removes that whole class of uncertainty.
+    private var manualBypassCookie: String?
 
-    init(session: URLSession = APIClient.makeDefaultSession()) {
+    init(session: URLSession = .shared) {
         self.session = session
     }
 
-    /// `URLSession.shared`'s cookie-accept policy isn't guaranteed to store a
-    /// `Set-Cookie` received from a plain data-task response (no "main
-    /// document" browsing context) — which is exactly what the Vercel preview
-    /// bypass cookie relies on. Building the default session explicitly with
-    /// `.always` removes that ambiguity instead of hoping the ambient default
-    /// happens to cooperate.
-    private static func makeDefaultSession() -> URLSession {
-        let configuration = URLSessionConfiguration.default
-        configuration.httpShouldSetCookies = true
-        configuration.httpCookieAcceptPolicy = .always
-        configuration.httpCookieStorage = .shared
-        return URLSession(configuration: configuration)
+    /// A delegate that stops the priming request from following its 307
+    /// redirect — we only need that redirect response's `Set-Cookie` header,
+    /// not the page it points to.
+    private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
+        func urlSession(
+            _ session: URLSession,
+            task: URLSessionTask,
+            willPerformHTTPRedirection response: HTTPURLResponse,
+            newRequest request: URLRequest,
+            completionHandler: @escaping (URLRequest?) -> Void
+        ) {
+            completionHandler(nil)
+        }
     }
 
     func send<Response: Decodable>(_ endpoint: Endpoint, as type: Response.Type = Response.self) async throws -> Response {
@@ -48,14 +58,14 @@ final class APIClient {
         _ = try await sendRaw(endpoint)
     }
 
-    /// A protected Vercel preview deployment needs its SSO bypass cookie set once
-    /// per session — after that, `URLSession`'s shared cookie storage carries it
-    /// on every subsequent request automatically. Deliberately NOT appended as a
-    /// `_vercel_share` query param on every request: once the cookie exists,
-    /// Vercel 307-redirects any further request that still carries that param
-    /// (to strip it from the URL), and URLSession drops the `Authorization`
-    /// header when it follows a redirect — silently turning every authenticated
-    /// call into a 401. One clean priming hit avoids that entirely.
+    /// A protected Vercel preview deployment needs its SSO bypass cookie set
+    /// once per session, then attached explicitly to every request (see
+    /// `manualBypassCookie`). Deliberately NOT appended as a `_vercel_share`
+    /// query param on every request: once the cookie exists, Vercel
+    /// 307-redirects any further request that still carries that param (to
+    /// strip it from the URL), and URLSession drops the `Authorization`
+    /// header when it follows a redirect — silently turning every
+    /// authenticated call into a 401. One clean priming hit avoids that.
     private func primeVercelBypassIfNeeded() async {
         guard let bypassToken = APIConfiguration.vercelPreviewBypassToken else { return }
         if let existing = bypassPrimingTask {
@@ -67,7 +77,16 @@ final class APIClient {
             guard var components = URLComponents(url: APIConfiguration.baseURL, resolvingAgainstBaseURL: false) else { return }
             components.queryItems = [URLQueryItem(name: "_vercel_share", value: bypassToken)]
             guard let url = components.url else { return }
-            _ = try? await session.data(from: url)
+            do {
+                let (_, response) = try await session.data(for: URLRequest(url: url), delegate: NoRedirectDelegate())
+                if let http = response as? HTTPURLResponse, let setCookie = http.value(forHTTPHeaderField: "Set-Cookie") {
+                    self.manualBypassCookie = setCookie.components(separatedBy: ";").first
+                }
+            } catch {
+                // Leave manualBypassCookie as-is; the real request that follows
+                // will surface a clear .previewAccessBlocked error if this
+                // genuinely failed, rather than failing silently here.
+            }
         }
         bypassPrimingTask = task
         await task.value
@@ -97,6 +116,7 @@ final class APIClient {
             // let it fall through to the generic "Something went wrong".
             guard !bypassRetried else { throw APIError.previewAccessBlocked }
             bypassPrimingTask = nil
+            manualBypassCookie = nil
             await primeVercelBypassIfNeeded()
             return try await sendRaw(endpoint, isRetry: isRetry, bypassRetried: true)
         }
@@ -150,6 +170,10 @@ final class APIClient {
 
         if endpoint.requiresAuth, let token = accessTokenProvider() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        if let cookie = manualBypassCookie {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
 
         return request
