@@ -102,7 +102,10 @@ docs/             API contract for the backend
 - Colors in `Theme.swift` and `AccentColor` match the live site's brand
   palette (`adlo-case-estimator/src/app/globals.css` is the source of truth —
   navy `#1C2B46`, red `#EE2110`, teal `#00436E`; there is no "gold" in the
-  real brand). The app icon itself is still a placeholder.
+  real brand). The app icon and in-app branding (`WelcomeView`, `LoginView`)
+  now use the real ADLO seal logo (`FirmLogo` in Assets.xcassets, sourced
+  from `adlo-diy/sales-site/dist/assets/brand/adlo-seal-logo.png`) instead
+  of a placeholder SF Symbol.
 - Contact details in `FirmContact.swift` are real, verified against
   `adlo-diy`'s vCards and `adlo-case-estimator`'s structured data — not
   placeholders. Phone number reuses the sales site's EN tracking number

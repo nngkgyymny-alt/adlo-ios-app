@@ -20,9 +20,10 @@ struct LoginView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(spacing: 6) {
-                        Image(systemName: "shield.lefthalf.filled")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Theme.navy)
+                        Image("FirmLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 64, height: 64)
                         Text(FirmContact.firmName)
                             .font(.title3.weight(.bold))
                         Text("Client Portal")

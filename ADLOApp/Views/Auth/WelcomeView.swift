@@ -15,9 +15,10 @@ struct WelcomeView: View {
                 Spacer()
 
                 VStack(spacing: 6) {
-                    Image(systemName: "shield.lefthalf.filled")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Theme.navy)
+                    Image("FirmLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 72, height: 72)
                     Text(FirmContact.firmName)
                         .font(.title2.weight(.bold))
                     Text("Client Portal")
