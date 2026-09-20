@@ -16,8 +16,22 @@ final class APIClient {
     private let session: URLSession
     private var bypassPrimingTask: Task<Void, Never>?
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = APIClient.makeDefaultSession()) {
         self.session = session
+    }
+
+    /// `URLSession.shared`'s cookie-accept policy isn't guaranteed to store a
+    /// `Set-Cookie` received from a plain data-task response (no "main
+    /// document" browsing context) — which is exactly what the Vercel preview
+    /// bypass cookie relies on. Building the default session explicitly with
+    /// `.always` removes that ambiguity instead of hoping the ambient default
+    /// happens to cooperate.
+    private static func makeDefaultSession() -> URLSession {
+        let configuration = URLSessionConfiguration.default
+        configuration.httpShouldSetCookies = true
+        configuration.httpCookieAcceptPolicy = .always
+        configuration.httpCookieStorage = .shared
+        return URLSession(configuration: configuration)
     }
 
     func send<Response: Decodable>(_ endpoint: Endpoint, as type: Response.Type = Response.self) async throws -> Response {
@@ -59,7 +73,7 @@ final class APIClient {
         await task.value
     }
 
-    private func sendRaw(_ endpoint: Endpoint, isRetry: Bool = false) async throws -> Data {
+    private func sendRaw(_ endpoint: Endpoint, isRetry: Bool = false, bypassRetried: Bool = false) async throws -> Data {
         await primeVercelBypassIfNeeded()
         let request = try makeRequest(for: endpoint)
 
@@ -73,6 +87,18 @@ final class APIClient {
 
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
+        }
+
+        if Self.isBlockedByVercelProtection(status: http.statusCode, data: data) {
+            // The priming hit ran, but this specific request still didn't carry
+            // the bypass cookie (e.g. it raced ahead of the cookie actually
+            // landing in storage). Force one fresh priming attempt and retry
+            // this exact request before giving up with a clear error — don't
+            // let it fall through to the generic "Something went wrong".
+            guard !bypassRetried else { throw APIError.previewAccessBlocked }
+            bypassPrimingTask = nil
+            await primeVercelBypassIfNeeded()
+            return try await sendRaw(endpoint, isRetry: isRetry, bypassRetried: true)
         }
 
         switch http.statusCode {
@@ -95,6 +121,16 @@ final class APIClient {
             let message = try? JSONDecoder.adlo.decode(ServerErrorBody.self, from: data).message
             throw APIError.server(status: http.statusCode, message: message)
         }
+    }
+
+    /// Vercel's own deployment-protection block returns a distinctive JSON
+    /// shape (`{"error":{"code":"401","message":"Protected deployment"},
+    /// "protection":{"vercel_auth_enabled":true,...}}`) that our own API never
+    /// produces — this is how we tell "blocked before reaching our backend"
+    /// apart from a real 401 from our own auth logic.
+    private static func isBlockedByVercelProtection(status: Int, data: Data) -> Bool {
+        guard status == 401 else { return false }
+        return String(data: data, encoding: .utf8)?.contains("\"vercel_auth_enabled\"") ?? false
     }
 
     private func makeRequest(for endpoint: Endpoint) throws -> URLRequest {
