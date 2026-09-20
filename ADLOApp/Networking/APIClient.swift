@@ -78,8 +78,14 @@ final class APIClient {
         switch http.statusCode {
         case 200..<300:
             return data
-        case 401:
-            guard endpoint.requiresAuth, !isRetry, let newToken = await onUnauthorized() else {
+        case 401 where endpoint.requiresAuth:
+            // A 401 here means an expired/invalid access token on an already
+            // authenticated call — try a silent refresh-and-retry. A 401 on an
+            // endpoint that never required auth (e.g. a bad login attempt) is a
+            // completely different situation and falls through to `default`
+            // below, where the server's actual message ("Invalid email or
+            // password") is shown instead of a misleading "session expired".
+            guard !isRetry, let newToken = await onUnauthorized() else {
                 throw APIError.unauthorized
             }
             var retryEndpoint = endpoint
