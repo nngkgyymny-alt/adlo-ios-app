@@ -25,6 +25,10 @@ struct ContactView: View {
                         Label("Book a Consultation", systemImage: "calendar.badge.plus")
                             .font(.subheadline.weight(.semibold))
                     }
+                    Link(destination: URL(string: FirmContact.teamURL)!) {
+                        Label("Meet the Staff", systemImage: "person.2.fill")
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
 
                 Section("Get in touch") {

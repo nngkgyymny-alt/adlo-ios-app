@@ -28,6 +28,12 @@ enum FirmContact {
     static let address = "10936 N 56th St, Suite 201, Temple Terrace, FL 33617"
     static let website = "https://americandreamlawoffice.com"
     static let consultationURL = "https://www.americandreamlawoffice.com/consultation/"
+    /// One combined team page for the whole firm — attorneys, paralegals,
+    /// legal assistants, and office staff all appear together
+    /// (`/our-firm/{slug}/` per person in `build_sales_site.py`). There's no
+    /// separate "legal staff" vs. "intake staff" page on the real site, so
+    /// both tracks point here rather than to an invented split.
+    static let teamURL = "https://americandreamlawoffice.com/our-firm/"
     /// EOIR has no public API — only this lookup website (A-Number, no login).
     /// The app links out to it directly rather than attempting to scrape it.
     static let eoirStatusURL = "https://acis.eoir.justice.gov/en/"

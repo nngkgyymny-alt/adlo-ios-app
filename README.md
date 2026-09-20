@@ -28,7 +28,8 @@ Native SwiftUI client-facing app for American Dream Law Office.
   `adlo-case-estimator`'s `docs/PORTAL_BACKEND.md`.
 - **Inquiry Status** *(prospects)* — leads with "Schedule a Consultation", then case details from a linked Lawmatics contact (if any) + intake status.
 - **Check USCIS / EOIR Status** *(both)* — a receipt-number lookup against USCIS's real Case Status API, plus a link out to EOIR's official ACIS site (no public API exists for EOIR). Reached from a link on Case Status (clients) / Inquiry Status (prospects), not its own tab.
-- **Contact** — call, WhatsApp, email, office map, hours, and social links.
+- **Contact** — call, WhatsApp, email, a "Meet the Staff" link to the firm's
+  team page, office map, hours, and social links.
 - **More** — language preference (English/Español/العربية), notification toggle, log out, legal links.
 
 ## Two account types
