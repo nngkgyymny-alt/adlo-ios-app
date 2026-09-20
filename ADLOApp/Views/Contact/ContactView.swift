@@ -16,6 +16,13 @@ struct ContactView: View {
                         .listRowInsets(EdgeInsets())
                 }
 
+                Section {
+                    Link(destination: URL(string: FirmContact.consultationURL)!) {
+                        Label("Book a Consultation", systemImage: "calendar.badge.plus")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+
                 Section("Get in touch") {
                     Link(destination: URL(string: "tel:\(FirmContact.phoneNumber)")!) {
                         Label(FirmContact.phoneDisplay, systemImage: "phone.fill")
