@@ -127,15 +127,18 @@ instead).
 {
   "status": "New Inquiry",
   "case_type": "Family-Based Green Card (I-130/I-485)",
-  "fee_low": 3500,
-  "fee_high": 5500,
-  "summary": "Based on your answers...",
-  "submitted_at": "2026-09-01T00:00:00Z"
+  "summary": "Submitted via consultation screener, urgency: same_day",
+  "has_lawmatics_contact": true
 }
 ```
-`case_type`/`fee_low`/`fee_high`/`summary`/`submitted_at` are all `null` if
-the prospect signed up without ever submitting the fee estimator on
-immigrationcost.com. `status` is a staff-editable free-text string (e.g.
+`case_type`/`summary` are `null` if no Lawmatics contact was found for this
+email (`has_lawmatics_contact: false`) — e.g. the prospect signed up cold,
+without ever going through the consultation screener at
+americandreamlawoffice.com/consultation/ (the primary source this links
+to — see `docs/PORTAL_BACKEND.md` in `adlo-case-estimator`) or any other
+lead form. There is deliberately **no fee estimate here** — that only ever
+existed for fee-estimator leads specifically, and this endpoint no longer
+sources from that. `status` is a staff-editable free-text string (e.g.
 "New Inquiry", "Consultation Requested") — there's no automatic progression.
 
 ## Backend implementation notes
@@ -159,5 +162,13 @@ scrypt/JWT auth, and the reasoning below in more detail).
   after building it: nothing in the existing repos ever read a Matter back,
   only created them. `current_stage` in `/cases` comes from Lawmatics'
   documented (not verified) `stage`/`status` fields when a matter is
-  linked; `milestones` and everything under `/inquiry` are backend-native
-  (staff-edited), not sourced from Lawmatics at all.
+  linked; `milestones` are backend-native (staff-edited), not sourced from
+  Lawmatics at all.
+- **`/inquiry` links to a Lawmatics *contact* by email**, not a local
+  record — `case_type`/`summary` come from that contact's `case_title`/
+  `case_blurb` fields, read live on each call (with a persisted-id
+  shortcut so repeat calls skip the search). Contact search-by-email is a
+  verified pattern (already used in production in `adlo-diy`); reading a
+  single contact's full record for display fields is new and, like
+  `getMatter`, unverified against a real response. `inquiry_status` is
+  unrelated — plain backend-native state, staff-edited.

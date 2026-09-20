@@ -62,16 +62,11 @@ struct ProspectStatusView: View {
                         .foregroundStyle(Theme.navy)
                 }
 
-                if let caseType = inquiry.caseType {
-                    SectionCard(title: "Your Fee Estimate") {
+                if inquiry.hasLawmaticsContact {
+                    SectionCard(title: "Your Case Details") {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(caseType)
+                            Text(inquiry.caseType ?? "On file with our office")
                                 .font(.subheadline.weight(.semibold))
-                            if let feeLow = inquiry.feeLow, let feeHigh = inquiry.feeHigh {
-                                Text(feeRangeText(low: feeLow, high: feeHigh))
-                                    .font(.title3.weight(.bold))
-                                    .foregroundStyle(Theme.navy)
-                            }
                             if let summary = inquiry.summary {
                                 Text(summary)
                                     .font(.caption)
@@ -80,8 +75,8 @@ struct ProspectStatusView: View {
                         }
                     }
                 } else {
-                    SectionCard(title: "Get a Fee Estimate") {
-                        Text("You haven't submitted a case estimate yet. Visit our website to get a free, no-obligation estimate.")
+                    SectionCard(title: "We Haven't Heard From You Yet") {
+                        Text("Book a consultation below and we'll get your case details on file.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -108,15 +103,6 @@ struct ProspectStatusView: View {
             }
             .padding()
         }
-    }
-
-    private func feeRangeText(low: Double, high: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.maximumFractionDigits = 0
-        let lowText = formatter.string(from: NSNumber(value: low)) ?? "\(Int(low))"
-        let highText = formatter.string(from: NSNumber(value: high)) ?? "\(Int(high))"
-        return "\(lowText) – \(highText)"
     }
 
     private func load() async {

@@ -11,7 +11,7 @@ Native SwiftUI client-facing app for American Dream Law Office.
 - **Home** *(clients)* — welcome screen, case snapshot, outstanding-document alert, quick contact links.
 - **Case Status** *(clients)* — milestone timeline for the client's active case.
 - **Documents** *(clients)* — document checklist with due dates; tap to mark submitted.
-- **Inquiry Status** *(prospects)* — fee estimate + intake status, with a "Book a Consultation" link.
+- **Inquiry Status** *(prospects)* — case details from a linked Lawmatics contact (if any) + intake status, with a "Book a Consultation" link.
 - **Contact** — call, WhatsApp, email, office map, and hours.
 - **More** — language preference (English/Español/العربية), notification toggle, log out, legal links.
 
