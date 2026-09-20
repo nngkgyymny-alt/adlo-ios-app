@@ -12,11 +12,19 @@ struct RootContentView: View {
             case .signedOut:
                 LoginView()
             case .signedIn(let user):
-                RootTabView()
-                    .task(id: user.id) {
-                        appState.configure(for: user)
-                        await appState.loadCaseData()
-                    }
+                switch user.accountType {
+                case .client:
+                    RootTabView()
+                        .task(id: user.id) {
+                            appState.configure(for: user)
+                            await appState.loadCaseData()
+                        }
+                case .prospect:
+                    ProspectTabView()
+                        .task(id: user.id) {
+                            appState.configure(for: user)
+                        }
+                }
             }
         }
     }

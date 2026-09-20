@@ -71,6 +71,21 @@ final class AuthSession: ObservableObject {
         }
     }
 
+    func signup(email: String, password: String, firstName: String, lastName: String) async {
+        errorMessage = nil
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        do {
+            let response: LoginResponse = try await client.send(.signup(email: email, password: password, firstName: firstName, lastName: lastName))
+            accessToken = response.accessToken
+            refreshToken = response.refreshToken
+            state = .signedIn(response.user)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func requestPasswordReset(email: String) async -> Bool {
         do {
             try await client.sendVoid(.requestPasswordReset(email: email))

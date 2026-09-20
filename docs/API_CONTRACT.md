@@ -22,10 +22,30 @@ All endpoints are prefixed with `/v1`. Requests/responses are JSON,
 {
   "access_token": "eyJ...",
   "refresh_token": "eyJ...",
-  "user": { "id": "123", "first_name": "Maria", "last_name": "Gomez", "email": "client@example.com" }
+  "user": { "id": "123", "first_name": "Maria", "last_name": "Gomez", "email": "client@example.com", "account_type": "client" }
 }
 ```
-`401` with `{ "message": "..." }` on bad credentials.
+`401` with `{ "message": "..." }` on bad credentials. `account_type` is `"client"`
+(retained — sees `/cases`) or `"prospect"` (self-signed-up lead — sees
+`/inquiry`). One login screen either way; the app branches on this field.
+
+### `POST /v1/auth/signup`
+Public, no auth required — self-service, **prospects only**. Existing/retained
+clients don't sign up here; their accounts are staff-provisioned (see
+`docs/PORTAL_BACKEND.md` in `adlo-case-estimator`) and set up via the invite
+link from `/auth/password-reset/confirm`.
+```json
+// Request
+{ "email": "lead@example.com", "password": "••••••••", "first_name": "Jane", "last_name": "Doe" }
+
+// 201 Response — same shape as login, account_type is always "prospect"
+{
+  "access_token": "eyJ...",
+  "refresh_token": "eyJ...",
+  "user": { "id": "456", "first_name": "Jane", "last_name": "Doe", "email": "lead@example.com", "account_type": "prospect" }
+}
+```
+`409` with `{ "message": "..." }` if the email is already registered.
 
 ### `POST /v1/auth/refresh`
 ```json
@@ -49,12 +69,14 @@ Invalidates the refresh token server-side. Empty body, bearer token required.
 ### `GET /v1/me`
 Bearer token required.
 ```json
-{ "id": "123", "first_name": "Maria", "last_name": "Gomez", "email": "client@example.com" }
+{ "id": "123", "first_name": "Maria", "last_name": "Gomez", "email": "client@example.com", "account_type": "client" }
 ```
 
-## Case data
+## Case data (`account_type: "client"`)
 
 All endpoints below require `Authorization: Bearer <access_token>`.
+A prospect account gets `[]` from `/cases` (not an error) — the app should
+call `/inquiry` instead once `/me`'s `account_type` says `"prospect"`.
 
 ### `GET /v1/cases`
 Every case the signed-in client has visibility into (the app currently
@@ -96,21 +118,46 @@ channel — email, portal upload, in person). Empty body/response.
 > API — `AppState.toggleSubmitted` only calls this endpoint on the
 > not-submitted → submitted transition.
 
+## Inquiry status (`account_type: "prospect"`)
+
+### `GET /v1/inquiry`
+Bearer token required. `404` if called by a `"client"` account (use `/cases`
+instead).
+```json
+{
+  "status": "New Inquiry",
+  "case_type": "Family-Based Green Card (I-130/I-485)",
+  "fee_low": 3500,
+  "fee_high": 5500,
+  "summary": "Based on your answers...",
+  "submitted_at": "2026-09-01T00:00:00Z"
+}
+```
+`case_type`/`fee_low`/`fee_high`/`summary`/`submitted_at` are all `null` if
+the prospect signed up without ever submitting the fee estimator on
+immigrationcost.com. `status` is a staff-editable free-text string (e.g.
+"New Inquiry", "Consultation Requested") — there's no automatic progression.
+
 ## Backend implementation notes
 
-- **Client identity isn't in Lawmatics.** Lawmatics is used today for lead
-  intake only (`adlo-diy`'s `/api/screener-lead`, `adlo-case-estimator`'s
-  `src/lib/lawmatics.ts`) — write-only, no client accounts, no Matters API
-  calls. The backend will need its own client credential store (email +
-  hashed password) separate from Lawmatics, most likely keyed by the
-  Lawmatics contact/matter ID so case data can still be looked up there.
-- **Lawmatics OAuth has been unreliable.** `adlo-case-estimator` falls back
-  to a no-auth "Custom Form" submit because Lawmatics OAuth broke
-  account-wide in June 2026. Confirm Lawmatics' Matters API is actually
-  reachable (and that ADLO's plan includes it) before building the
-  `/cases` endpoints against it.
-- **Case status has no established mapping.** Nothing in the existing repos
-  reads Matters/case-stage data back from Lawmatics — `current_stage` and
-  `milestones` above are a UI-level shape the app expects, not a Lawmatics
-  field name. Whoever builds the backend needs to decide how Lawmatics
-  matter statuses/custom fields map to these milestones.
+This contract is now implemented — see `docs/PORTAL_BACKEND.md` in
+`adlo-case-estimator` for the actual design (Redis-backed accounts,
+scrypt/JWT auth, and the reasoning below in more detail).
+
+- **Client identity isn't in Lawmatics.** Confirmed: neither Lawmatics nor
+  this backend's `client` accounts are self-service — staff provision them
+  via `POST /api/staff/portal/clients`, which locks the account and emails
+  an invite link reusing the `/auth/password-reset/confirm` flow. Prospect
+  accounts (`POST /auth/signup` above) are the one self-service path, and
+  they don't touch Lawmatics case data at all.
+- **Lawmatics OAuth has been unreliable** (broke account-wide June 2026,
+  `adlo-case-estimator` has a no-auth Custom Form fallback for lead intake).
+  The backend's `getMatter` (`src/lib/lawmatics-matters.ts`) is unverified
+  against a live account for this reason — it fails soft (falls back to
+  "In Progress") rather than breaking `/cases`.
+- **Case status has no established mapping** from Lawmatics — confirmed
+  after building it: nothing in the existing repos ever read a Matter back,
+  only created them. `current_stage` in `/cases` comes from Lawmatics'
+  documented (not verified) `stage`/`status` fields when a matter is
+  linked; `milestones` and everything under `/inquiry` are backend-native
+  (staff-edited), not sourced from Lawmatics at all.

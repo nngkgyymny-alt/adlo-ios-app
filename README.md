@@ -5,17 +5,33 @@ Native SwiftUI client-facing app for American Dream Law Office.
 ## Features (MVP)
 
 - **Login** — email + password, forgot-password flow, session persisted via Keychain.
-- **Home** — welcome screen, case snapshot, outstanding-document alert, quick contact links.
-- **Case Status** — milestone timeline for the client's active case.
-- **Documents** — document checklist with due dates; tap to mark submitted.
+- **Sign Up** — self-service, for potential clients/leads only (`AccountType.prospect`).
+  Retained clients don't sign up — their accounts are staff-provisioned; see
+  "Two account types" below.
+- **Home** *(clients)* — welcome screen, case snapshot, outstanding-document alert, quick contact links.
+- **Case Status** *(clients)* — milestone timeline for the client's active case.
+- **Documents** *(clients)* — document checklist with due dates; tap to mark submitted.
+- **Inquiry Status** *(prospects)* — fee estimate + intake status, with a "Book a Consultation" link.
 - **Contact** — call, WhatsApp, email, office map, and hours.
 - **More** — language preference (English/Español/العربية), notification toggle, log out, legal links.
 
-Case/document data and auth now go through a real networking layer
-(`ADLOApp/Networking/`, `ADLOApp/Auth/`) — **but the backend it talks to
-does not exist yet.** See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
-for the exact REST contract this app expects, and why the app can't talk
-to the Lawmatics CRM directly.
+## Two account types
+
+`ClientUser.accountType` drives which tabs the app shows after sign-in
+(`RootContentView`) — one login screen either way:
+
+- **`.client`** — retained, has (or will have) a Lawmatics matter.
+  Staff-provisioned only. Sees `RootTabView` (Home/Case Status/Documents/Contact/More).
+- **`.prospect`** — self-signed-up lead. Sees `ProspectTabView`
+  (Inquiry Status/Contact/More) — no case exists yet, just their fee
+  estimate and a staff-editable status string.
+
+Case/document/inquiry data and auth now go through a real networking layer
+(`ADLOApp/Networking/`, `ADLOApp/Auth/`) — and, as of the
+`adlo-case-estimator` client-portal-backend PR, **a real backend to talk
+to.** See [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) for the REST
+contract, and `adlo-case-estimator`'s `docs/PORTAL_BACKEND.md` for how it's
+actually implemented.
 
 ## Requirements
 
@@ -45,9 +61,11 @@ ADLOApp/
   App/            App entry point, Theme, AppState
   Auth/           AuthSession, Keychain-backed token storage, auth models
   Networking/     APIClient, Endpoint definitions, APIConfiguration, APIError
-  Services/       CaseService (case/document API calls)
-  Models/         CaseFile, DocumentItem, FirmContact
-  Views/          Auth, Home, CaseStatus, Documents, Contact, Settings, shared Components
+  Services/       CaseService (clients), ProspectService (prospects)
+  Models/         CaseFile, DocumentItem, InquiryStatus, FirmContact
+  Views/          Auth (incl. SignUp), Home, CaseStatus, Documents, Prospect,
+                  Contact, Settings, shared Components; RootContentView
+                  branches to RootTabView (client) or ProspectTabView (prospect)
   Resources/      Info.plist, Assets.xcassets
 ADLOAppTests/     Unit tests
 docs/             API contract for the backend

@@ -21,6 +21,11 @@ struct Endpoint {
         return Endpoint(path: "/auth/login", method: .post, body: body, requiresAuth: false)
     }
 
+    static func signup(email: String, password: String, firstName: String, lastName: String) -> Endpoint {
+        let body = try? JSONEncoder.adlo.encode(SignupRequest(email: email, password: password, firstName: firstName, lastName: lastName))
+        return Endpoint(path: "/auth/signup", method: .post, body: body, requiresAuth: false)
+    }
+
     static func refreshToken(_ refreshToken: String) -> Endpoint {
         let body = try? JSONEncoder.adlo.encode(RefreshRequest(refreshToken: refreshToken))
         return Endpoint(path: "/auth/refresh", method: .post, body: body, requiresAuth: false)
@@ -49,6 +54,10 @@ struct Endpoint {
 
     static func markDocumentSubmitted(caseID: String, documentID: String) -> Endpoint {
         Endpoint(path: "/cases/\(caseID)/documents/\(documentID)/submit", method: .post)
+    }
+
+    static func inquiry() -> Endpoint {
+        Endpoint(path: "/inquiry", method: .get)
     }
 }
 

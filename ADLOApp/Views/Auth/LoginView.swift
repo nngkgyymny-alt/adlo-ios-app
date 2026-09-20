@@ -5,6 +5,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isShowingForgotPassword = false
+    @State private var isShowingSignUp = false
     @FocusState private var focusedField: Field?
 
     private enum Field {
@@ -75,16 +76,35 @@ struct LoginView: View {
                     }
                     .font(.footnote)
 
-                    Text("New client? Contact our office to set up your portal access.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 8)
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    VStack(spacing: 10) {
+                        Text("Just getting a fee estimate or exploring your options?")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+
+                        Button("Create a Free Account") {
+                            isShowingSignUp = true
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Theme.navy)
+
+                        Text("Already a client but don't have portal access? Contact our office.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 4)
+                    }
                 }
                 .padding(.horizontal, 24)
             }
             .sheet(isPresented: $isShowingForgotPassword) {
                 ForgotPasswordView()
+            }
+            .sheet(isPresented: $isShowingSignUp) {
+                SignUpView()
             }
         }
     }
