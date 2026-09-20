@@ -107,7 +107,10 @@ docs/             API contract for the backend
   `adlo-diy`'s vCards and `adlo-case-estimator`'s structured data — not
   placeholders. Phone number reuses the sales site's EN tracking number
   (`PHONE_I18N["en"]` in `adlo-diy/tools/site-backup/build_sales_site.py`)
-  rather than a separate number provisioned just for the app. There is
-  deliberately no public email (`contactFormURL` instead) — the sales site
-  has never displayed one, to avoid leaking the internal `intake@` address.
+  rather than a separate number provisioned just for the app. Email is
+  track-specific (`FirmContact.contactEmail(for:)`, driven by
+  `AppState.accountType`): `intake@americandreamlawoffice.com` for
+  new/potential clients, `clients@americandreamlawoffice.com` for existing
+  ones — the sales site itself never displays a public email, but these are
+  specific to the app's own two tracks.
 - `APIConfiguration.baseURL` is a placeholder — update once the real backend is deployed.

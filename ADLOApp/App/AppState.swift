@@ -10,6 +10,9 @@ final class AppState: ObservableObject {
     }
 
     @Published var clientFirstName: String = ""
+    /// Drives which contact email `ContactView` shows — `FirmContact` has a
+    /// different address per track (new/potential vs. existing clients).
+    @Published var accountType: AccountType = .prospect
     @Published var caseFile: CaseFile?
     @Published var documents: [DocumentItem] = []
     @Published private(set) var loadState: LoadState = .idle
@@ -26,6 +29,7 @@ final class AppState: ObservableObject {
 
     func configure(for user: ClientUser) {
         clientFirstName = user.firstName
+        accountType = user.accountType
     }
 
     func loadCaseData() async {

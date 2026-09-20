@@ -13,13 +13,20 @@ enum FirmContact {
     static let phoneNumber = "+16562360205"
     static let phoneDisplay = "(656) 236-0205"
     static let whatsappNumber = "18889637326"
-    /// No public email: the sales site has deliberately never displayed one
-    /// (see the comment above `VCARD_TAGLINE_I18N` in `build_sales_site.py`)
-    /// to avoid leaking the internal `intake@` notification address as if it
-    /// were the firm's public one. Use `contactFormURL` instead.
+    /// Track-specific inbox — new/potential clients (`AccountType.prospect`)
+    /// go to intake, existing clients (`AccountType.client`) go straight to
+    /// the clients inbox. The sales site itself never publicly displays an
+    /// email (see `VCARD_TAGLINE_I18N` in `build_sales_site.py`) — this is
+    /// specific to the app's own two tracks, provided directly rather than
+    /// inferred from that policy.
+    static func contactEmail(for accountType: AccountType) -> String {
+        switch accountType {
+        case .client: return "clients@americandreamlawoffice.com"
+        case .prospect: return "intake@americandreamlawoffice.com"
+        }
+    }
     static let address = "10936 N 56th St, Suite 201, Temple Terrace, FL 33617"
     static let website = "https://americandreamlawoffice.com"
-    static let contactFormURL = "https://www.americandreamlawoffice.com/contact/"
     static let consultationURL = "https://www.americandreamlawoffice.com/consultation/"
     /// EOIR has no public API — only this lookup website (A-Number, no login).
     /// The app links out to it directly rather than attempting to scrape it.

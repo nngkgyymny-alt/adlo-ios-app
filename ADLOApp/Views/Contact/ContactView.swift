@@ -2,6 +2,8 @@ import SwiftUI
 import MapKit
 
 struct ContactView: View {
+    @EnvironmentObject private var appState: AppState
+
     // Matches adlo-case-estimator's LegalService structured data (the real
     // office address's verified coordinates), not the old placeholder address.
     @State private var region = MKCoordinateRegion(
@@ -32,8 +34,9 @@ struct ContactView: View {
                     Link(destination: URL(string: "https://wa.me/\(FirmContact.whatsappNumber)")!) {
                         Label("WhatsApp", systemImage: "message.fill")
                     }
-                    Link(destination: URL(string: FirmContact.contactFormURL)!) {
-                        Label("Contact Form", systemImage: "envelope.fill")
+                    let email = FirmContact.contactEmail(for: appState.accountType)
+                    Link(destination: URL(string: "mailto:\(email)")!) {
+                        Label(email, systemImage: "envelope.fill")
                     }
                     Link(destination: URL(string: FirmContact.website)!) {
                         Label("americandreamlawoffice.com", systemImage: "safari.fill")
@@ -53,4 +56,5 @@ struct ContactView: View {
 
 #Preview {
     ContactView()
+        .environmentObject(AppState())
 }
