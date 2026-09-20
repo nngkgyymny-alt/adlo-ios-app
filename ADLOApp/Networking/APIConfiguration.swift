@@ -49,7 +49,7 @@ enum APIConfiguration {
     /// after any redeploy.
     static let vercelPreviewBypassToken: String? = {
         #if DEBUG
-        return "DSOqMr2zdWilwYqPCxBaAoEWDVJc8ECO"
+        return "DWXufWoiLFARKy11eprPTRKDRrqMrYQC"
         #else
         return nil
         #endif
