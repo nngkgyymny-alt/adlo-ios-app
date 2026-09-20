@@ -69,7 +69,11 @@ final class APIClient {
             url: APIConfiguration.baseURL.appendingPathComponent(APIConfiguration.apiVersionPath + endpoint.path),
             resolvingAgainstBaseURL: false
         )
-        components?.queryItems = endpoint.query.isEmpty ? nil : endpoint.query
+        var queryItems = endpoint.query
+        if let bypassToken = APIConfiguration.vercelPreviewBypassToken {
+            queryItems.append(URLQueryItem(name: "_vercel_share", value: bypassToken))
+        }
+        components?.queryItems = queryItems.isEmpty ? nil : queryItems
 
         guard let url = components?.url else { throw APIError.invalidResponse }
 

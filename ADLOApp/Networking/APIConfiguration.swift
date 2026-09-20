@@ -12,11 +12,29 @@ enum APIConfiguration {
     /// default once the real backend URL is known.
     static var baseURL: URL {
         #if DEBUG
-        URL(string: "https://staging-api.americandreamlawoffice.com")!
+        URL(string: "https://adlo-case-estimator-git-claude-065c79-american-dream-law-office.vercel.app")!
         #else
         URL(string: "https://api.americandreamlawoffice.com")!
         #endif
     }
 
-    static let apiVersionPath = "/v1"
+    static let apiVersionPath = "/api/portal"
+
+    /// The `adlo-case-estimator` Vercel project gates every preview deployment
+    /// (including its API routes, not just the browser homepage) behind Vercel's
+    /// own SSO/login wall. This bypass token — generated via
+    /// `get_access_to_vercel_url` for the specific preview deployment above —
+    /// lets `APIClient` get past that wall on every request. It's tied to that
+    /// one deployment and **expires roughly 24 hours after being generated**;
+    /// regenerate and paste in a fresh value if requests start failing with a
+    /// Vercel login page instead of JSON. Production builds never need this —
+    /// production has no such gate. `nil` disables the bypass entirely (plain
+    /// requests, e.g. once pointed at a real non-preview backend).
+    static let vercelPreviewBypassToken: String? = {
+        #if DEBUG
+        return "OdzVLmoptTfrA3ZqDLc6jZJVuLC0Ag2x"
+        #else
+        return nil
+        #endif
+    }()
 }

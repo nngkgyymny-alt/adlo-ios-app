@@ -6,14 +6,17 @@ app is not safe. Instead, the app expects **ADLO's own backend** to expose
 the REST API below; that backend authenticates clients and reads/writes
 case data from Lawmatics server-side (see "Backend implementation notes").
 
-Base URL: `APIConfiguration.baseURL` in `ADLOApp/Networking/APIConfiguration.swift`
-(currently a placeholder — update once a real host exists).
-All endpoints are prefixed with `/v1`. Requests/responses are JSON,
-`snake_case` on the wire (the app converts to/from `camelCase`).
+Base URL: `APIConfiguration.baseURL` in `ADLOApp/Networking/APIConfiguration.swift`.
+All endpoints are prefixed with `/api/portal` (`APIConfiguration.apiVersionPath`)
+— this matches the actual Next.js route layout in `adlo-case-estimator`
+(`src/app/api/portal/...`), not the `/v1` prefix this doc originally
+specified before the backend existed; fixed once the mismatch was caught via
+live testing. Requests/responses are JSON, `snake_case` on the wire (the app
+converts to/from `camelCase`).
 
 ## Auth
 
-### `POST /v1/auth/login`
+### `POST /api/portal/auth/login`
 ```json
 // Request
 { "email": "client@example.com", "password": "••••••••" }
@@ -29,7 +32,7 @@ All endpoints are prefixed with `/v1`. Requests/responses are JSON,
 (retained — sees `/cases`) or `"prospect"` (self-signed-up lead — sees
 `/inquiry`). One login screen either way; the app branches on this field.
 
-### `POST /v1/auth/signup`
+### `POST /api/portal/auth/signup`
 Public, no auth required — self-service, **prospects only**. Existing/retained
 clients don't sign up here; their accounts are staff-provisioned (see
 `docs/PORTAL_BACKEND.md` in `adlo-case-estimator`) and set up via the invite
@@ -47,7 +50,7 @@ link from `/auth/password-reset/confirm`.
 ```
 `409` with `{ "message": "..." }` if the email is already registered.
 
-### `POST /v1/auth/refresh`
+### `POST /api/portal/auth/refresh`
 ```json
 // Request
 { "refresh_token": "eyJ..." }
@@ -56,17 +59,17 @@ link from `/auth/password-reset/confirm`.
 ```
 `401` if the refresh token is invalid/expired — the app signs the user out.
 
-### `POST /v1/auth/password-reset`
+### `POST /api/portal/auth/password-reset`
 ```json
 // Request
 { "email": "client@example.com" }
 // 200 Response: empty body. Always returns 200 to avoid leaking which emails exist.
 ```
 
-### `POST /v1/auth/logout`
+### `POST /api/portal/auth/logout`
 Invalidates the refresh token server-side. Empty body, bearer token required.
 
-### `GET /v1/me`
+### `GET /api/portal/me`
 Bearer token required.
 ```json
 { "id": "123", "first_name": "Maria", "last_name": "Gomez", "email": "client@example.com", "account_type": "client" }
@@ -78,7 +81,7 @@ All endpoints below require `Authorization: Bearer <access_token>`.
 A prospect account gets `[]` from `/cases` (not an error) — the app should
 call `/inquiry` instead once `/me`'s `account_type` says `"prospect"`.
 
-### `GET /v1/cases`
+### `GET /api/portal/cases`
 Every case the signed-in client has visibility into (the app currently
 shows the first one — see `CaseService.fetchPrimaryCase`).
 ```json
@@ -97,7 +100,7 @@ shows the first one — see `CaseService.fetchPrimaryCase`).
 ]
 ```
 
-### `GET /v1/cases/{caseId}/documents`
+### `GET /api/portal/cases/{caseId}/documents`
 ```json
 [
   {
@@ -110,7 +113,7 @@ shows the first one — see `CaseService.fetchPrimaryCase`).
 ]
 ```
 
-### `POST /v1/cases/{caseId}/documents/{documentId}/submit`
+### `POST /api/portal/cases/{caseId}/documents/{documentId}/submit`
 Marks a document as submitted (client confirms they've sent it in some other
 channel — email, portal upload, in person). Empty body/response.
 
@@ -120,7 +123,7 @@ channel — email, portal upload, in person). Empty body/response.
 
 ## Inquiry status (`account_type: "prospect"`)
 
-### `GET /v1/inquiry`
+### `GET /api/portal/inquiry`
 Bearer token required. `404` if called by a `"client"` account (use `/cases`
 instead).
 ```json
@@ -143,7 +146,7 @@ sources from that. `status` is a staff-editable free-text string (e.g.
 
 ## Government case status lookup (any account type)
 
-### `GET /v1/uscis-status?receipt_number=IOE1234567890`
+### `GET /api/portal/uscis-status?receipt_number=IOE1234567890`
 Bearer token required — but available to **any** signed-in account, client
 or prospect. A USCIS receipt number isn't tied to whether its holder has
 retained ADLO.
