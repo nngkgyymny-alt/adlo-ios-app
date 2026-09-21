@@ -10,11 +10,20 @@ import Foundation
 enum APIConfiguration {
     /// Override at build time with `-D API_BASE_URL_STAGING` or by editing this
     /// default once the real backend URL is known.
+    ///
+    /// The RELEASE value is the `adlo-case-estimator` Vercel project's real
+    /// production custom domain — confirmed live and reachable with no
+    /// Vercel Deployment Protection gate (verified directly: `GET /` returns
+    /// the real estimator homepage, `GET /api/portal/me` returns a real JSON
+    /// 401, not a Vercel login page). **`api.americandreamlawoffice.com`
+    /// (the previous value here) was never actually wired to this project —
+    /// any TestFlight/Release build using it would fail to reach the backend
+    /// at all.**
     static var baseURL: URL {
         #if DEBUG
         URL(string: "https://adlo-case-estimator-git-claude-065c79-american-dream-law-office.vercel.app")!
         #else
-        URL(string: "https://api.americandreamlawoffice.com")!
+        URL(string: "https://immigrationcost.com")!
         #endif
     }
 
