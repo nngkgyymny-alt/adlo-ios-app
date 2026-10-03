@@ -3,7 +3,6 @@ import Foundation
 protocol CaseDataProviding {
     func fetchPrimaryCase() async throws -> CaseFile?
     func fetchDocuments(caseID: String) async throws -> [DocumentItem]
-    func markSubmitted(caseID: String, documentID: String) async throws
     func uploadDocument(caseID: String, documentID: String, fileData: Data, fileName: String, mimeType: String) async throws -> DocumentItem
     func fetchDocumentFile(caseID: String, documentID: String) async throws -> Data
 }
@@ -26,10 +25,6 @@ struct CaseService: CaseDataProviding {
 
     func fetchDocuments(caseID: String) async throws -> [DocumentItem] {
         try await client.send(.documents(caseID: caseID))
-    }
-
-    func markSubmitted(caseID: String, documentID: String) async throws {
-        try await client.sendVoid(.markDocumentSubmitted(caseID: caseID, documentID: documentID))
     }
 
     func uploadDocument(caseID: String, documentID: String, fileData: Data, fileName: String, mimeType: String) async throws -> DocumentItem {

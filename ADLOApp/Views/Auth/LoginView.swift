@@ -86,7 +86,7 @@ struct LoginView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.navy)
-            .disabled(trimmedEmail.isEmpty || authSession.isSubmitting)
+            .disabled(!canSendCode)
         }
         .onAppear { isFieldFocused = true }
     }
@@ -117,7 +117,7 @@ struct LoginView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.navy)
-            .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || authSession.isSubmitting)
+            .disabled(!canVerifyCode)
 
             Button("Use a different email") {
                 step = .email
@@ -133,13 +133,23 @@ struct LoginView: View {
         email.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var canSendCode: Bool {
+        !trimmedEmail.isEmpty && !authSession.isSubmitting
+    }
+
+    private var canVerifyCode: Bool {
+        !code.trimmingCharacters(in: .whitespaces).isEmpty && !authSession.isSubmitting
+    }
+
     private func sendCode() async {
+        guard canSendCode else { return }
         isFieldFocused = false
         guard await authSession.requestCode(email: trimmedEmail) else { return }
         step = .code
     }
 
     private func verifyCode() async {
+        guard canVerifyCode else { return }
         isFieldFocused = false
         await authSession.verifyCode(code.trimmingCharacters(in: .whitespaces))
         if authSession.isSignedIn { dismiss() }

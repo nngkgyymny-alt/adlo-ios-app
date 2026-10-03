@@ -38,14 +38,12 @@ struct DocumentsView: View {
     @ViewBuilder
     private func documentRow(_ document: DocumentItem) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Button {
-                Task { await appState.toggleSubmitted(for: document.id) }
-            } label: {
-                Image(systemName: document.isSubmitted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(document.isSubmitted ? .green : .secondary)
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
+            // Status only — not a control. Uploading a file is what marks a
+            // document submitted (see `fileControl` below); there's no
+            // separate "submitted" state to toggle independently of that.
+            Image(systemName: document.isSubmitted ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(document.isSubmitted ? .green : .secondary)
+                .font(.title3)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(document.title)

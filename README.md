@@ -10,7 +10,7 @@ Native SwiftUI client-facing app for American Dream Law Office.
   button lets a visitor who isn't ready to log in or sign up email the firm
   directly — it asks current-vs-potential first so the message lands in the
   right inbox (`clients@` vs. `intake@`, same routing `ContactView` uses).
-- **Login** — email + password, forgot-password flow, session persisted via Keychain.
+- **Sign in** — email + one-time emailed code, no password, session persisted via Keychain.
 - **New Client** — leads with "Schedule a Consultation" (opens the firm's
   consultation booking page) since that's the primary action for someone
   without an existing relationship with the firm; "Create a Free Account" and
@@ -94,10 +94,11 @@ docs/             API contract for the backend
 
 ## Auth & Networking Architecture
 
-- `AuthSession` (`ADLOApp/Auth/AuthSession.swift`) owns the signed-in state,
-  drives login/logout/password-reset, and transparently refreshes the
-  access token on a 401 via `APIClient.onUnauthorized`.
-- Access tokens are held in memory only; refresh tokens are persisted in
+- `AuthSession` (`ADLOApp/Auth/AuthSession.swift`) owns the signed-in state
+  and drives the email-code request/verify flow and logout. There's no
+  refresh token to silently exchange — the bearer token is a stateless
+  30-day JWT, so a 401 via `APIClient.onUnauthorized` just signs out.
+- The access token itself (not a separate refresh token) is persisted in
   the Keychain (`KeychainStore.swift`) so a session survives app relaunch.
 - `APIClient` (`ADLOApp/Networking/APIClient.swift`) is a thin, protocol-free
   HTTP client — no dependency on `AuthSession`, so it's easy to unit test in

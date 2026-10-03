@@ -40,14 +40,19 @@ rate-limited.
 ### `POST /api/mobile/auth/verify`
 ```json
 // Request
-{ "code": "123456" }
+{ "email": "client@example.com", "code": "123456" }
 // 200 Response
 { "access_token": "eyJ...", "email": "client@example.com" }
 ```
-`401` with `{ "error": "..." }` if the code is invalid or expired. The
-access token is a stateless 30-day JWT (see `lib/mobile-auth.ts` in
-`adlo-portal`) — there's no refresh token and nothing to revoke
-server-side; signing out is local-only (delete the stored token).
+`400` with `{ "error": "..." }` if either field is missing. `401` if the
+code is invalid, expired, or doesn't match the one on file for this email
+— codes are keyed by email specifically so a guess has to target a known
+address, not just any outstanding code (see `lib/magic-link.ts` in
+`adlo-portal`); wrong guesses are capped at 5 attempts before the code is
+burned entirely. The access token is a stateless 30-day JWT (see
+`lib/mobile-auth.ts` in `adlo-portal`) — there's no refresh token and
+nothing to revoke server-side; signing out is local-only (delete the
+stored token).
 
 ### `GET /api/mobile/me`
 Bearer token required.
@@ -114,23 +119,18 @@ number.
 ]
 ```
 `file_url` is only ever this backend's own authenticated proxy path (never
-a raw storage URL) — see the upload/file endpoints below. It's `null` when
+a raw storage URL) — see the upload/file endpoint below. It's `null` when
 `has_file` is `false`. There's no backend concept of a document being
 "submitted" separately from "uploaded" — the two are the same state;
-`is_submitted` mirrors `has_file`.
-
-### `POST /api/mobile/cases/{caseId}/documents/{documentId}/submit`
-Confirms a file is actually on file for this checklist item. `400` if
-nothing's been uploaded yet — call `.../upload` first. Exists for
-API-contract parity with the app's upload-then-submit flow; uploading
-already marks the item complete, so this never changes state on its own.
+`is_submitted` mirrors `has_file`, and there's no separate submit step to
+call.
 
 ### `POST /api/mobile/cases/{caseId}/documents/{documentId}/upload`
 `multipart/form-data` with a single `file` field, up to 20 MB. Uploading a
-file **is** the submission: it also marks the item submitted, same as
-calling `.../submit` separately. Returns the updated document (same shape
-as the list above). `413` if the file's too large, `400` for an unknown
-checklist item or a missing/empty file.
+file **is** the submission: it marks the item submitted as part of the same
+call. Returns the updated document (same shape as the list above). `413`
+if the file's too large, `400` for an unknown checklist item or a
+missing/empty file.
 
 `DocumentsView` builds the multipart body itself (`Endpoint.uploadDocument`)
 and picks a file via `.fileImporter`; `AppState.uploadDocument` calls this

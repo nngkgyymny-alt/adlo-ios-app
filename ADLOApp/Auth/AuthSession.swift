@@ -22,15 +22,23 @@ final class AuthSession: ObservableObject {
             }
         }
     }
+    /// Remembered between `requestCode` and `verifyCode` — verify needs the
+    /// same email the code was requested for (see `Endpoint.verifyCode`).
+    private var pendingEmail: String?
 
     private enum Keys {
         static let accessToken = "accessToken"
+        /// From the old password+refresh-token backend — never read anymore,
+        /// just deleted once so it doesn't sit in the Keychain forever on
+        /// upgraded installs (the Keychain survives app deletion).
+        static let legacyRefreshToken = "refreshToken"
     }
 
     init(client: APIClient = .shared) {
         self.client = client
         client.accessTokenProvider = { [weak self] in self?.accessToken }
         client.onUnauthorized = { [weak self] in await self?.handleUnauthorized() }
+        KeychainStore.delete(Keys.legacyRefreshToken)
     }
 
     var isSignedIn: Bool {
@@ -45,7 +53,7 @@ final class AuthSession: ObservableObject {
             return
         }
         accessToken = storedToken
-        await loadCurrentUser()
+        await loadCurrentUser(signOutOnFailure: true)
     }
 
     /// Step 1: emails a one-time code to this address.
@@ -56,6 +64,7 @@ final class AuthSession: ObservableObject {
 
         do {
             try await client.sendVoid(.requestCode(email: email))
+            pendingEmail = email
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -65,14 +74,25 @@ final class AuthSession: ObservableObject {
 
     /// Step 2: exchanges the emailed code for a session.
     func verifyCode(_ code: String) async {
+        guard let email = pendingEmail else {
+            errorMessage = "Enter your email again to request a new code."
+            return
+        }
+
         errorMessage = nil
         isSubmitting = true
         defer { isSubmitting = false }
 
         do {
-            let response: VerifyCodeResponse = try await client.send(.verifyCode(code))
+            let response: VerifyCodeResponse = try await client.send(.verifyCode(email: email, code: code))
             accessToken = response.accessToken
-            await loadCurrentUser()
+            // The token we just got is fresh and valid — a failure loading
+            // the profile right now is almost certainly transient (network,
+            // a momentary 5xx), not an invalid session. Don't sign out and
+            // silently drop back to the code screen with no explanation;
+            // keep the token (it's still good for restoreSession next
+            // launch) and surface a clear, retryable error instead.
+            await loadCurrentUser(signOutOnFailure: false)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -82,6 +102,7 @@ final class AuthSession: ObservableObject {
         // No server-side session to revoke — the bearer token is a stateless
         // JWT (see adlo-portal's lib/mobile-auth.ts) — so this is local-only.
         accessToken = nil
+        pendingEmail = nil
         state = .signedOut
     }
 
@@ -90,12 +111,18 @@ final class AuthSession: ObservableObject {
         state = .signedOut
     }
 
-    private func loadCurrentUser() async {
+    private func loadCurrentUser(signOutOnFailure: Bool) async {
         do {
             let user: ClientUser = try await client.send(.currentUser())
+            pendingEmail = nil
             state = .signedIn(user)
         } catch {
-            state = .signedOut
+            if signOutOnFailure {
+                accessToken = nil
+                state = .signedOut
+            } else {
+                errorMessage = "Signed in, but couldn't load your account: \(error.localizedDescription)"
+            }
         }
     }
 }

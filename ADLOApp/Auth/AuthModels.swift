@@ -5,6 +5,7 @@ struct RequestCodeRequest: Encodable {
 }
 
 struct VerifyCodeRequest: Encodable {
+    let email: String
     let code: String
 }
 

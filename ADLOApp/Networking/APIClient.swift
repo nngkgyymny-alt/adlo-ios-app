@@ -8,9 +8,9 @@ final class APIClient {
 
     /// Supplies the current access token, if any.
     var accessTokenProvider: () -> String? = { nil }
-    /// Called once, synchronously, when a request receives a 401 on an
-    /// endpoint that required auth — there's no refresh token to silently
-    /// exchange in the OTP model, so this just signals the caller to sign out.
+    /// Awaited once when a request receives a 401 on an endpoint that
+    /// required auth — there's no refresh token to silently exchange in the
+    /// OTP model, so this just signals the caller to sign out.
     var onUnauthorized: () async -> Void = {}
 
     private let session: URLSession
@@ -64,7 +64,7 @@ final class APIClient {
             await onUnauthorized()
             throw APIError.unauthorized
         default:
-            let message = try? JSONDecoder.adlo.decode(ServerErrorBody.self, from: data).message
+            let message = try? JSONDecoder.adlo.decode(ServerErrorBody.self, from: data).displayMessage
             throw APIError.server(status: http.statusCode, message: message)
         }
     }
@@ -92,6 +92,11 @@ final class APIClient {
     }
 }
 
+/// adlo-portal's `/api/mobile/*` routes return `{ "error": "..." }`;
+/// decode either key defensively rather than assuming one.
 private struct ServerErrorBody: Decodable {
+    let error: String?
     let message: String?
+
+    var displayMessage: String? { error ?? message }
 }
