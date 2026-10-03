@@ -13,27 +13,24 @@ final class AuthSession: ObservableObject {
     @Published var errorMessage: String?
 
     private let client: APIClient
-    private var accessToken: String?
-    private var refreshToken: String? {
+    private var accessToken: String? {
         didSet {
-            if let refreshToken {
-                KeychainStore.save(refreshToken, for: Keys.refreshToken)
+            if let accessToken {
+                KeychainStore.save(accessToken, for: Keys.accessToken)
             } else {
-                KeychainStore.delete(Keys.refreshToken)
+                KeychainStore.delete(Keys.accessToken)
             }
         }
     }
 
     private enum Keys {
-        static let refreshToken = "refreshToken"
+        static let accessToken = "accessToken"
     }
 
     init(client: APIClient = .shared) {
         self.client = client
         client.accessTokenProvider = { [weak self] in self?.accessToken }
-        client.onUnauthorized = { [weak self] in
-            await self?.refreshSession()
-        }
+        client.onUnauthorized = { [weak self] in await self?.handleUnauthorized() }
     }
 
     var isSignedIn: Bool {
@@ -41,54 +38,24 @@ final class AuthSession: ObservableObject {
         return false
     }
 
-    /// Call once at launch: attempts to restore a session from the stored refresh token.
+    /// Call once at launch: restores a session from the stored bearer token, if any.
     func restoreSession() async {
-        guard let storedRefreshToken = KeychainStore.read(Keys.refreshToken), !storedRefreshToken.isEmpty else {
+        guard let storedToken = KeychainStore.read(Keys.accessToken), !storedToken.isEmpty else {
             state = .signedOut
             return
         }
-        refreshToken = storedRefreshToken
-        if let newAccessToken = await refreshSession() {
-            accessToken = newAccessToken
-            await loadCurrentUser()
-        } else {
-            state = .signedOut
-        }
+        accessToken = storedToken
+        await loadCurrentUser()
     }
 
-    func login(email: String, password: String) async {
+    /// Step 1: emails a one-time code to this address.
+    func requestCode(email: String) async -> Bool {
         errorMessage = nil
         isSubmitting = true
         defer { isSubmitting = false }
 
         do {
-            let response: LoginResponse = try await client.send(.login(email: email, password: password))
-            accessToken = response.accessToken
-            refreshToken = response.refreshToken
-            state = .signedIn(response.user)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func signup(email: String, password: String, firstName: String, lastName: String) async {
-        errorMessage = nil
-        isSubmitting = true
-        defer { isSubmitting = false }
-
-        do {
-            let response: LoginResponse = try await client.send(.signup(email: email, password: password, firstName: firstName, lastName: lastName))
-            accessToken = response.accessToken
-            refreshToken = response.refreshToken
-            state = .signedIn(response.user)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func requestPasswordReset(email: String) async -> Bool {
-        do {
-            try await client.sendVoid(.requestPasswordReset(email: email))
+            try await client.sendVoid(.requestCode(email: email))
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -96,29 +63,31 @@ final class AuthSession: ObservableObject {
         }
     }
 
+    /// Step 2: exchanges the emailed code for a session.
+    func verifyCode(_ code: String) async {
+        errorMessage = nil
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        do {
+            let response: VerifyCodeResponse = try await client.send(.verifyCode(code))
+            accessToken = response.accessToken
+            await loadCurrentUser()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func logout() {
-        Task { try? await client.sendVoid(.logout()) }
+        // No server-side session to revoke — the bearer token is a stateless
+        // JWT (see adlo-portal's lib/mobile-auth.ts) — so this is local-only.
         accessToken = nil
-        refreshToken = nil
         state = .signedOut
     }
 
-    /// Attempts to exchange the stored refresh token for a new access token.
-    /// Returns the new access token on success, or `nil` if the refresh token is invalid/expired.
-    @discardableResult
-    private func refreshSession() async -> String? {
-        guard let refreshToken else { return nil }
-        do {
-            let tokens: AuthTokens = try await client.send(.refreshToken(refreshToken))
-            self.accessToken = tokens.accessToken
-            self.refreshToken = tokens.refreshToken
-            return tokens.accessToken
-        } catch {
-            self.refreshToken = nil
-            self.accessToken = nil
-            state = .signedOut
-            return nil
-        }
+    private func handleUnauthorized() async {
+        accessToken = nil
+        state = .signedOut
     }
 
     private func loadCurrentUser() async {

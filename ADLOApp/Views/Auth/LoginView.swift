@@ -1,19 +1,23 @@
 import SwiftUI
 
+/// Sign-in with a one-time emailed code — no passwords, no separate signup.
+/// First-time and returning users go through the exact same two steps;
+/// the backend only learns which bucket (client/prospect) an email falls
+/// into from whether it's ever synced to Lawmatics (see adlo-portal's
+/// lib/portal-accounts.ts), not from a distinct "create account" step.
 struct LoginView: View {
     @EnvironmentObject private var authSession: AuthSession
+    @Environment(\.dismiss) private var dismiss
+
+    private enum Step {
+        case email
+        case code
+    }
+
+    @State private var step: Step = .email
     @State private var email = ""
-    @State private var password = ""
-    @State private var isShowingForgotPassword = false
-    @FocusState private var focusedField: Field?
-
-    private enum Field {
-        case email, password
-    }
-
-    private var canSubmit: Bool {
-        !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty && !authSession.isSubmitting
-    }
+    @State private var code = ""
+    @FocusState private var isFieldFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -32,23 +36,11 @@ struct LoginView: View {
                     }
                     .padding(.top, 32)
 
-                    VStack(spacing: 12) {
-                        TextField("Email", text: $email)
-                            .textContentType(.username)
-                            .keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .focused($focusedField, equals: .email)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .password }
-                            .textFieldStyle(.roundedBorder)
-
-                        SecureField("Password", text: $password)
-                            .textContentType(.password)
-                            .focused($focusedField, equals: .password)
-                            .submitLabel(.go)
-                            .onSubmit { submit() }
-                            .textFieldStyle(.roundedBorder)
+                    switch step {
+                    case .email:
+                        emailStep
+                    case .code:
+                        codeStep
                     }
 
                     if let errorMessage = authSession.errorMessage {
@@ -57,43 +49,100 @@ struct LoginView: View {
                             .foregroundStyle(.red)
                             .multilineTextAlignment(.center)
                     }
-
-                    Button(action: submit) {
-                        if authSession.isSubmitting {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            Text("Sign In")
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.navy)
-                    .disabled(!canSubmit)
-
-                    Button("Forgot password?") {
-                        isShowingForgotPassword = true
-                    }
-                    .font(.footnote)
-
-                    Text("Don't have portal access yet? Contact our office.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 4)
                 }
                 .padding(.horizontal, 24)
             }
-            .sheet(isPresented: $isShowingForgotPassword) {
-                ForgotPasswordView()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
             }
         }
     }
 
-    private func submit() {
-        guard canSubmit else { return }
-        focusedField = nil
-        Task { await authSession.login(email: email, password: password) }
+    private var emailStep: some View {
+        VStack(spacing: 16) {
+            Text("Enter your email and we'll send you a one-time sign-in code.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            TextField("Email", text: $email)
+                .textContentType(.username)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($isFieldFocused)
+                .submitLabel(.go)
+                .onSubmit { Task { await sendCode() } }
+                .textFieldStyle(.roundedBorder)
+
+            Button(action: { Task { await sendCode() } }) {
+                if authSession.isSubmitting {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    Text("Send Code").frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.navy)
+            .disabled(trimmedEmail.isEmpty || authSession.isSubmitting)
+        }
+        .onAppear { isFieldFocused = true }
+    }
+
+    private var codeStep: some View {
+        VStack(spacing: 16) {
+            Text("We sent a code to \(trimmedEmail). Enter it below.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            TextField("Code", text: $code)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                .focused($isFieldFocused)
+                .submitLabel(.go)
+                .onSubmit { Task { await verifyCode() } }
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.center)
+                .font(.title3.monospacedDigit())
+
+            Button(action: { Task { await verifyCode() } }) {
+                if authSession.isSubmitting {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    Text("Sign In").frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.navy)
+            .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || authSession.isSubmitting)
+
+            Button("Use a different email") {
+                step = .email
+                code = ""
+                authSession.errorMessage = nil
+            }
+            .font(.footnote)
+        }
+        .onAppear { isFieldFocused = true }
+    }
+
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func sendCode() async {
+        isFieldFocused = false
+        guard await authSession.requestCode(email: trimmedEmail) else { return }
+        step = .code
+    }
+
+    private func verifyCode() async {
+        isFieldFocused = false
+        await authSession.verifyCode(code.trimmingCharacters(in: .whitespaces))
+        if authSession.isSignedIn { dismiss() }
     }
 }
 

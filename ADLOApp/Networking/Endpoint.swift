@@ -17,28 +17,18 @@ struct Endpoint {
     /// Most endpoints require the bearer token; auth endpoints (login, refresh) don't.
     var requiresAuth: Bool = true
 
-    static func login(email: String, password: String) -> Endpoint {
-        let body = try? JSONEncoder.adlo.encode(LoginRequest(email: email, password: password))
-        return Endpoint(path: "/auth/login", method: .post, body: body, requiresAuth: false)
+    /// Step 1 of sign-in: emails a one-time code to this address. Always
+    /// responds 200 regardless of whether the address is known — the backend
+    /// never reveals that over an unauthenticated endpoint.
+    static func requestCode(email: String) -> Endpoint {
+        let body = try? JSONEncoder.adlo.encode(RequestCodeRequest(email: email))
+        return Endpoint(path: "/auth/request", method: .post, body: body, requiresAuth: false)
     }
 
-    static func signup(email: String, password: String, firstName: String, lastName: String) -> Endpoint {
-        let body = try? JSONEncoder.adlo.encode(SignupRequest(email: email, password: password, firstName: firstName, lastName: lastName))
-        return Endpoint(path: "/auth/signup", method: .post, body: body, requiresAuth: false)
-    }
-
-    static func refreshToken(_ refreshToken: String) -> Endpoint {
-        let body = try? JSONEncoder.adlo.encode(RefreshRequest(refreshToken: refreshToken))
-        return Endpoint(path: "/auth/refresh", method: .post, body: body, requiresAuth: false)
-    }
-
-    static func requestPasswordReset(email: String) -> Endpoint {
-        let body = try? JSONEncoder.adlo.encode(PasswordResetRequest(email: email))
-        return Endpoint(path: "/auth/password-reset", method: .post, body: body, requiresAuth: false)
-    }
-
-    static func logout() -> Endpoint {
-        Endpoint(path: "/auth/logout", method: .post)
+    /// Step 2: exchanges the emailed code for a long-lived bearer token.
+    static func verifyCode(_ code: String) -> Endpoint {
+        let body = try? JSONEncoder.adlo.encode(VerifyCodeRequest(code: code))
+        return Endpoint(path: "/auth/verify", method: .post, body: body, requiresAuth: false)
     }
 
     static func currentUser() -> Endpoint {
@@ -50,19 +40,19 @@ struct Endpoint {
     }
 
     static func documents(caseID: String) -> Endpoint {
-        Endpoint(path: "/cases/\(caseID)/documents", method: .get)
+        Endpoint(path: "/cases/\(encodedPathComponent(caseID))/documents", method: .get)
     }
 
     static func markDocumentSubmitted(caseID: String, documentID: String) -> Endpoint {
-        Endpoint(path: "/cases/\(caseID)/documents/\(documentID)/submit", method: .post)
+        Endpoint(path: "/cases/\(encodedPathComponent(caseID))/documents/\(documentID)/submit", method: .post)
     }
 
     static func documentFile(caseID: String, documentID: String) -> Endpoint {
-        Endpoint(path: "/cases/\(caseID)/documents/\(documentID)/file", method: .get)
+        Endpoint(path: "/cases/\(encodedPathComponent(caseID))/documents/\(documentID)/file", method: .get)
     }
 
     /// Multipart/form-data upload, matching the backend's single `file` field
-    /// (see docs/PORTAL_BACKEND.md's "Document uploads" section).
+    /// (see docs/API_CONTRACT.md's "Document data" section).
     static func uploadDocument(caseID: String, documentID: String, fileData: Data, fileName: String, mimeType: String) -> Endpoint {
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
@@ -73,11 +63,18 @@ struct Endpoint {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
         return Endpoint(
-            path: "/cases/\(caseID)/documents/\(documentID)/upload",
+            path: "/cases/\(encodedPathComponent(caseID))/documents/\(documentID)/upload",
             method: .post,
             body: body,
             contentType: "multipart/form-data; boundary=\(boundary)"
         )
+    }
+
+    /// Case keys look like `submission:<uuid>` on the backend — percent-encode
+    /// the whole segment (matching the web client's own `encodeURIComponent`)
+    /// rather than relying on the colon being path-legal as-is.
+    private static func encodedPathComponent(_ raw: String) -> String {
+        raw.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? raw
     }
 
     static func inquiry() -> Endpoint {
