@@ -21,8 +21,9 @@ final class APIClient {
 
     func send<Response: Decodable>(_ endpoint: Endpoint, as type: Response.Type = Response.self) async throws -> Response {
         let data = try await sendRaw(endpoint)
+        let decoder: JSONDecoder = endpoint.usesRawKeys ? .adloRawKeys : .adlo
         do {
-            return try JSONDecoder.adlo.decode(Response.self, from: data)
+            return try decoder.decode(Response.self, from: data)
         } catch {
             throw APIError.decoding(error)
         }

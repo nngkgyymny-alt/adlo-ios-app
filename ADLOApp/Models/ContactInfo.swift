@@ -26,6 +26,15 @@ enum FirmContact {
         }
     }
     static let address = "10936 N 56th St, Suite 201, Temple Terrace, FL 33617"
+    /// Opens turn-by-turn directions in the user's preferred maps app via a
+    /// Google Maps search URL (works even without the Google Maps app
+    /// installed — it falls back to a browser) — matches adlo-cross's
+    /// `openDirections`.
+    static var directionsURL: String {
+        let query = "American Dream Law Office PLLC \(address)"
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return "https://www.google.com/maps/search/?api=1&query=\(query)"
+    }
     static let website = "https://americandreamlawoffice.com"
     static let consultationURL = "https://www.americandreamlawoffice.com/consultation/"
     /// One combined team page for the whole firm — attorneys, paralegals,

@@ -1,19 +1,32 @@
 import SwiftUI
 import MapKit
 
-struct ContactView: View {
+/// The client tab bar's "More" tab — combines Contact and Settings into one
+/// screen. Adding the Forms tab would otherwise push `RootTabView` from 5
+/// tabs to 6, and iOS's `TabView` auto-collapses anything past the 5th tab
+/// into a system-generated "More" tab — which would have bundled this
+/// screen (itself titled "More") inside that system tab, showing a
+/// confusing "More" inside "More" with a duplicated nav bar.
+/// `ProspectTabView` doesn't hit this (only 3 tabs), so it still shows
+/// `ContactView` and `SettingsView` as separate tabs — this view exists
+/// only for the 5-tab client shell.
+struct ClientMoreView: View {
+    @EnvironmentObject private var authSession: AuthSession
     @EnvironmentObject private var appState: AppState
+    @AppStorage("preferredLanguage") private var preferredLanguage = "English"
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @State private var isShowingLogoutConfirmation = false
 
-    // Matches adlo-case-estimator's LegalService structured data (the real
-    // office address's verified coordinates), not the old placeholder address.
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 28.0395, longitude: -82.3834),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
     )
 
+    private let languages = ["English", "Español", "العربية"]
+
     var body: some View {
         NavigationStack {
-            List {
+            Form {
                 Section {
                     Map(coordinateRegion: $region)
                         .frame(height: 180)
@@ -64,13 +77,37 @@ struct ContactView: View {
                         }
                     }
                 }
+
+                Section("Preferences") {
+                    Picker("Language", selection: $preferredLanguage) {
+                        ForEach(languages, id: \.self) { Text($0) }
+                    }
+                    Toggle("Case update notifications", isOn: $notificationsEnabled)
+                }
+
+                Section("About") {
+                    LabeledContent("App Version", value: "1.0.0")
+                    Link("Privacy Policy", destination: URL(string: "\(FirmContact.website)/privacy-policy")!)
+                    Link("Terms of Service", destination: URL(string: "\(FirmContact.website)/terms")!)
+                }
+
+                Section {
+                    Button("Log Out", role: .destructive) {
+                        isShowingLogoutConfirmation = true
+                    }
+                }
             }
-            .navigationTitle("Contact Us")
+            .navigationTitle("Contact & Settings")
+            .confirmationDialog("Log out of your ADLO account?", isPresented: $isShowingLogoutConfirmation, titleVisibility: .visible) {
+                Button("Log Out", role: .destructive) { authSession.logout() }
+                Button("Cancel", role: .cancel) {}
+            }
         }
     }
 }
 
 #Preview {
-    ContactView()
+    ClientMoreView()
+        .environmentObject(AuthSession())
         .environmentObject(AppState())
 }
