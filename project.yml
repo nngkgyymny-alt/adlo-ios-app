@@ -49,6 +49,14 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
+        # XcodeGen/Xcode's default TEST_HOST derives from the host target's
+        # *name* (ADLOApp), but that target's own PRODUCT_NAME is overridden
+        # to ADLO (see its settings above) — so the default guess points at
+        # a bundle that doesn't exist (ADLOApp.app instead of the real
+        # ADLO.app) and `build-for-testing` fails with "Could not find test
+        # host for ADLOAppTests". Spelled out explicitly to match reality.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ADLO.app/ADLO"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 
 schemes:
   ADLOApp:
