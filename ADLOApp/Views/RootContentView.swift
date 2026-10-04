@@ -15,13 +15,13 @@ struct RootContentView: View {
                 switch user.accountType {
                 case .client:
                     RootTabView()
-                        .task(id: user.id) {
+                        .task(id: user.email) {
                             appState.configure(for: user)
                             await appState.loadCaseData()
                         }
                 case .prospect:
                     ProspectTabView()
-                        .task(id: user.id) {
+                        .task(id: user.email) {
                             appState.configure(for: user)
                         }
                 }

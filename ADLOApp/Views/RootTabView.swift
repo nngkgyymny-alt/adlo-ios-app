@@ -12,10 +12,15 @@ struct RootTabView: View {
             DocumentsView()
                 .tabItem { Label("Documents", systemImage: "doc.text.fill") }
 
-            ContactView()
-                .tabItem { Label("Contact", systemImage: "phone.fill") }
+            FormsListView()
+                .tabItem { Label("Forms", systemImage: "doc.text.magnifyingglass") }
 
-            SettingsView()
+            // Contact is folded into this tab (not a separate one) — see
+            // ClientMoreView's own doc comment for why: a 6th tab would push
+            // into iOS's auto-generated "More" overflow tab, which
+            // ProspectTabView doesn't hit (only 3 tabs there), so
+            // ContactView still exists standalone for that one.
+            ClientMoreView()
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
         }
     }

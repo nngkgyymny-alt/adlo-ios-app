@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// "More" tab for prospects (see `ClientMoreView` for the client version,
+/// which also folds in Contact — prospects keep Contact as its own tab
+/// since `ProspectTabView` only has 3 tabs total, well under iOS's 5-tab
+/// overflow threshold).
 struct SettingsView: View {
     @EnvironmentObject private var authSession: AuthSession
     @AppStorage("preferredLanguage") private var preferredLanguage = "English"

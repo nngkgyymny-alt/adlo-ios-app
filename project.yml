@@ -34,6 +34,13 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.americandreamlawoffice.adlo
         PRODUCT_NAME: ADLO
+        # Keeps the Swift module name as ADLOApp (matching the Xcode target
+        # name, this repo throughout, and ADLOAppTests.swift's own
+        # `@testable import ADLOApp`) even though the shipped bundle/binary
+        # is named ADLO — PRODUCT_MODULE_NAME would otherwise default to a
+        # sanitized PRODUCT_NAME ("ADLO"), which doesn't match that import
+        # and fails with "no such module 'ADLOApp'".
+        PRODUCT_MODULE_NAME: ADLOApp
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: false
@@ -49,6 +56,14 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
+        # XcodeGen/Xcode's default TEST_HOST derives from the host target's
+        # *name* (ADLOApp), but that target's own PRODUCT_NAME is overridden
+        # to ADLO (see its settings above) — so the default guess points at
+        # a bundle that doesn't exist (ADLOApp.app instead of the real
+        # ADLO.app) and `build-for-testing` fails with "Could not find test
+        # host for ADLOAppTests". Spelled out explicitly to match reality.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ADLO.app/ADLO"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 
 schemes:
   ADLOApp:
