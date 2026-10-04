@@ -37,11 +37,16 @@ jobs:
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Build test target (compile-only, no simulator boot required)
+      - name: Build test target
+        # Unlike the plain app build above, build-for-testing links
+        # ADLOAppTests against a TEST_HOST (ADLOApp.app) at a concrete path,
+        # which xcodebuild can't resolve against the generic destination used
+        # above ("Could not find test host for ADLOAppTests") — it needs an
+        # actual simulator device to build against, though not a booted one.
         run: |
           xcodebuild build-for-testing \
             -project ADLOApp.xcodeproj \
             -scheme ADLOApp \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
