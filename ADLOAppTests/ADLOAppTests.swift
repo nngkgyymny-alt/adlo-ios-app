@@ -28,36 +28,6 @@ final class ADLOAppTests: XCTestCase {
         }
     }
 
-    func testToggleSubmittedFlipsStatusAndCallsService() async {
-        let service = FakeCaseService(primaryCase: .sample, documents: DocumentItem.sampleChecklist)
-        let state = AppState(caseService: service)
-        await state.loadCaseData()
-
-        guard let firstUnsubmitted = state.documents.first(where: { !$0.isSubmitted }) else {
-            return XCTFail("Expected at least one unsubmitted document in sample data")
-        }
-
-        await state.toggleSubmitted(for: firstUnsubmitted.id)
-
-        XCTAssertTrue(state.documents.first(where: { $0.id == firstUnsubmitted.id })?.isSubmitted ?? false)
-        XCTAssertEqual(service.markSubmittedCallCount, 1)
-    }
-
-    func testToggleSubmittedRollsBackOnServiceFailure() async {
-        let service = FakeCaseService(primaryCase: .sample, documents: DocumentItem.sampleChecklist)
-        service.shouldFailMarkSubmitted = true
-        let state = AppState(caseService: service)
-        await state.loadCaseData()
-
-        guard let firstUnsubmitted = state.documents.first(where: { !$0.isSubmitted }) else {
-            return XCTFail("Expected at least one unsubmitted document in sample data")
-        }
-
-        await state.toggleSubmitted(for: firstUnsubmitted.id)
-
-        XCTAssertFalse(state.documents.first(where: { $0.id == firstUnsubmitted.id })?.isSubmitted ?? true)
-    }
-
     func testUploadDocumentUpdatesTheMatchingDocument() async throws {
         let service = FakeCaseService(primaryCase: .sample, documents: DocumentItem.sampleChecklist)
         let state = AppState(caseService: service)
@@ -90,9 +60,7 @@ final class ADLOAppTests: XCTestCase {
 private final class FakeCaseService: CaseDataProviding {
     let primaryCase: CaseFile?
     let documents: [DocumentItem]
-    var shouldFailMarkSubmitted = false
     var fileData = Data()
-    private(set) var markSubmittedCallCount = 0
     private(set) var uploadDocumentCallCount = 0
 
     init(primaryCase: CaseFile?, documents: [DocumentItem]) {
@@ -103,13 +71,6 @@ private final class FakeCaseService: CaseDataProviding {
     func fetchPrimaryCase() async throws -> CaseFile? { primaryCase }
 
     func fetchDocuments(caseID: String) async throws -> [DocumentItem] { documents }
-
-    func markSubmitted(caseID: String, documentID: String) async throws {
-        markSubmittedCallCount += 1
-        if shouldFailMarkSubmitted {
-            throw APIError.server(status: 500, message: "failed")
-        }
-    }
 
     func uploadDocument(caseID: String, documentID: String, fileData: Data, fileName: String, mimeType: String) async throws -> DocumentItem {
         uploadDocumentCallCount += 1
@@ -123,7 +84,7 @@ private final class FakeCaseService: CaseDataProviding {
             isSubmitted: true,
             dueDate: existing.dueDate,
             hasFile: true,
-            fileUrl: "/api/portal/cases/\(caseID)/documents/\(documentID)/file"
+            fileUrl: "/api/mobile/cases/\(caseID)/documents/\(documentID)/file"
         )
     }
 

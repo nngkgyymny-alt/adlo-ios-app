@@ -2,12 +2,13 @@ import SwiftUI
 
 /// The "new / potential client" track from `WelcomeView`. Leads with
 /// scheduling a consultation — the primary action for someone without an
-/// existing relationship with the firm — and offers account creation/login
-/// as secondary options for tracking an inquiry already in progress.
+/// existing relationship with the firm — and offers sign-in as a secondary
+/// option for tracking an inquiry already in progress (sign-in doubles as
+/// account creation: the same emailed-code flow works whether or not we've
+/// seen this email before — see `AuthSession`).
 struct NewClientView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @State private var isShowingSignUp = false
     @State private var isShowingLogin = false
 
     var body: some View {
@@ -49,16 +50,11 @@ struct NewClientView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Button("Create a Free Account") {
-                            isShowingSignUp = true
+                        Button("Sign In") {
+                            isShowingLogin = true
                         }
                         .buttonStyle(.bordered)
                         .tint(Theme.navy)
-
-                        Button("Log In") {
-                            isShowingLogin = true
-                        }
-                        .font(.footnote)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -69,9 +65,6 @@ struct NewClientView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-        }
-        .sheet(isPresented: $isShowingSignUp) {
-            SignUpView()
         }
         .sheet(isPresented: $isShowingLogin) {
             LoginView()

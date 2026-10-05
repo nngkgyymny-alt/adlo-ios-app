@@ -47,23 +47,9 @@ final class AppState: ObservableObject {
         }
     }
 
-    func toggleSubmitted(for documentID: String) async {
-        guard let caseFile, let index = documents.firstIndex(where: { $0.id == documentID }) else { return }
-        let previousValue = documents[index].isSubmitted
-        documents[index].isSubmitted.toggle()
-
-        // Only the client-submitted -> submitted transition round-trips to the
-        // server today; un-marking is local-only until the backend supports it.
-        guard !previousValue else { return }
-        do {
-            try await caseService.markSubmitted(caseID: caseFile.id, documentID: documentID)
-        } catch {
-            documents[index].isSubmitted = previousValue
-        }
-    }
-
-    /// Uploading a file IS the submission — mirrors the backend's
-    /// `attachDocumentFile`, which also marks the item submitted.
+    /// Uploading a file IS the submission — adlo-portal has no concept of a
+    /// document being "submitted" separately from "uploaded" (there's
+    /// nothing to toggle independently of attaching a file).
     func uploadDocument(documentID: String, data: Data, fileName: String, mimeType: String) async throws {
         guard let caseFile else {
             throw AppStateError(errorDescription: "No case is linked to your account yet.")

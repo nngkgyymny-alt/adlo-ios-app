@@ -1,34 +1,17 @@
 import Foundation
 
-struct LoginRequest: Encodable {
-    let email: String
-    let password: String
-}
-
-struct SignupRequest: Encodable {
-    let email: String
-    let password: String
-    let firstName: String
-    let lastName: String
-}
-
-struct RefreshRequest: Encodable {
-    let refreshToken: String
-}
-
-struct PasswordResetRequest: Encodable {
+struct RequestCodeRequest: Encodable {
     let email: String
 }
 
-struct AuthTokens: Decodable {
+struct VerifyCodeRequest: Encodable {
+    let email: String
+    let code: String
+}
+
+struct VerifyCodeResponse: Decodable {
     let accessToken: String
-    let refreshToken: String
-}
-
-struct LoginResponse: Decodable {
-    let accessToken: String
-    let refreshToken: String
-    let user: ClientUser
+    let email: String
 }
 
 enum AccountType: String, Decodable {
@@ -36,10 +19,11 @@ enum AccountType: String, Decodable {
     case prospect
 }
 
+/// No `id` field — the backend has no separate account-record primary key;
+/// email is the identity everywhere (matches adlo-portal's magic-link model).
 struct ClientUser: Decodable, Equatable {
-    let id: String
+    let email: String
     let firstName: String
     let lastName: String
-    let email: String
     let accountType: AccountType
 }
